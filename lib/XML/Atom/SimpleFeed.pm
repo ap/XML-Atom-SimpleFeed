@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-$VERSION = "0.2";
+$VERSION = "0.3";
 
-# SVN ID: $Id: SimpleFeed.pm 16 2005-02-20 01:53:49Z minter $
+# SVN ID: $Id: SimpleFeed.pm 18 2005-02-22 17:24:05Z minter $
 
 use warnings;
 use strict;
@@ -24,7 +24,7 @@ sub new
     $feed{info}      = _encode_xml( $arg{info} );
     $feed{id}        = _encode_xml( $arg{id} );
     %{ $feed{author} } =
-      map { $_ => _encode_xml($_) } keys( %{ $arg{author} } );
+      map { $_ => _encode_xml( $arg{author}->{$_} ) } keys( %{ $arg{author} } );
 
     bless { _feed => \%feed, _entries => \@entries }, $class;
 }
@@ -42,7 +42,8 @@ sub add_entry
     {
         return unless $arg{author}->{name};
         %{ $entry{author} } =
-          map { $_ => _encode_xml($_) } keys( %{ $arg{author} } );
+          map { $_ => _encode_xml( $arg{author}->{$_} ) }
+          keys( %{ $arg{author} } );
     }
     elsif ( $self->{_feed}{author} )
     {
@@ -115,6 +116,14 @@ sub _generate_feed
     $string .= qq|  <id>$self->{_feed}{id}</id>\n| if $self->{_feed}{id};
     $string .= qq|  <tagline>$self->{_feed}{tagline}</tagline>\n|
       if $self->{_feed}{tagline};
+    $string .= qq|  <author>\n| if $self->{_feed}{author};
+    $string .= qq|    <name>$self->{_feed}{author}{name}</name>\n|
+      if $self->{_feed}{author};
+    $string .= qq|    <email>$self->{_feed}{author}{email}</email>\n|
+      if $self->{_feed}{author}{email};
+    $string .= qq|    <url>$self->{_feed}{author}{url}</url>\n|
+      if $self->{_feed}{author}{url};
+    $string .= qq|  </author>\n| if $self->{_feed}{author};
     $string .= qq|  <generator>$self->{_feed}{generator}</generator>\n|
       if $self->{_feed}{generator};
     $string .= qq|  <copyright>$self->{_feed}{copyright}</copyright>\n|

@@ -1,5 +1,11 @@
 Revision history for Perl extension XML::Atom::SimpleFeed.
 
+0.3  Tue Feb 22 12:20:00 2005
+        - Fixed a bug in the entry author section where the author name was always
+          showing up as "name".  CPAN RT ID# 11620
+        - Fixed a similar bug in the feed-level author section.
+        - Happy Birthday, Holly!
+
 0.2  Sat Feb 19 14:04:00 2005
         - Adjust the XML encoding to produce valid feeds.
 
