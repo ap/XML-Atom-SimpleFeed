@@ -1,0 +1,36 @@
+XML::Atom::SimpleFeed
+================================
+
+This module exists to generate basic Atom syndication feeds.  While it does 
+not provide a full, object-oriented interface into all the nooks and crannies 
+of Atom feeds, an Atom parser, or an Atom client API, it should be useful for 
+people who want to generate valid Atom feeds of their content quickly and 
+easily.
+
+See the POD for more details.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+  Test::More (for tests)
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2005 by H. Wade Minter <minter@lunenburg.org>
+http://www.lunenburg.org/
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.6 or,
+at your option, any later version of Perl 5 you may have available.
+
+

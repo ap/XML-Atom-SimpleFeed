@@ -1,0 +1,7 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/XML-Atom-SimpleFeed.t
+lib/XML/Atom/SimpleFeed.pm
+META.yml                                 Module meta-data (added by MakeMaker)
