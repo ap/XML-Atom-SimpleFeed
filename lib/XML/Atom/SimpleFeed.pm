@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-$VERSION = "0.3";
+$VERSION = "0.4";
 
-# SVN ID: $Id: SimpleFeed.pm 18 2005-02-22 17:24:05Z minter $
+# SVN ID: $Id: SimpleFeed.pm 23 2005-02-22 18:05:23Z minter $
 
 use warnings;
 use strict;
@@ -23,8 +23,15 @@ sub new
     $feed{copyright} = _encode_xml( $arg{copyright} );
     $feed{info}      = _encode_xml( $arg{info} );
     $feed{id}        = _encode_xml( $arg{id} );
-    %{ $feed{author} } =
-      map { $_ => _encode_xml( $arg{author}->{$_} ) } keys( %{ $arg{author} } );
+    if ( $arg{author} )
+    {
+
+        # If you're supplying an author, you've got to have a name.
+        return unless $arg{author}->{name};
+        %{ $feed{author} } =
+          map { $_ => _encode_xml( $arg{author}->{$_} ) }
+          keys( %{ $arg{author} } );
+    }
 
     bless { _feed => \%feed, _entries => \@entries }, $class;
 }
@@ -116,14 +123,18 @@ sub _generate_feed
     $string .= qq|  <id>$self->{_feed}{id}</id>\n| if $self->{_feed}{id};
     $string .= qq|  <tagline>$self->{_feed}{tagline}</tagline>\n|
       if $self->{_feed}{tagline};
-    $string .= qq|  <author>\n| if $self->{_feed}{author};
-    $string .= qq|    <name>$self->{_feed}{author}{name}</name>\n|
-      if $self->{_feed}{author};
-    $string .= qq|    <email>$self->{_feed}{author}{email}</email>\n|
-      if $self->{_feed}{author}{email};
-    $string .= qq|    <url>$self->{_feed}{author}{url}</url>\n|
-      if $self->{_feed}{author}{url};
-    $string .= qq|  </author>\n| if $self->{_feed}{author};
+
+    if ( $self->{_feed}{author} )
+    {
+        $string .= qq|  <author>\n|;
+        $string .= qq|    <name>$self->{_feed}{author}{name}</name>\n|
+          if $self->{_feed}{author}{name};
+        $string .= qq|    <email>$self->{_feed}{author}{email}</email>\n|
+          if $self->{_feed}{author}{email};
+        $string .= qq|    <url>$self->{_feed}{author}{url}</url>\n|
+          if $self->{_feed}{author}{url};
+        $string .= qq|  </author>\n|;
+    }
     $string .= qq|  <generator>$self->{_feed}{generator}</generator>\n|
       if $self->{_feed}{generator};
     $string .= qq|  <copyright>$self->{_feed}{copyright}</copyright>\n|
@@ -142,14 +153,18 @@ sub _generate_feed
           if $entry->{created};
         $string .= qq|      <summary>$entry->{summary}</summary>\n|
           if $entry->{summary};
-        $string .= qq|      <author>\n| if $entry->{author};
-        $string .= qq|        <name>$entry->{author}{name}</name>\n|
-          if $entry->{author};
-        $string .= qq|        <email>$entry->{author}{email}</email>\n|
-          if $entry->{author}{email};
-        $string .= qq|        <url>$entry->{author}{url}</url>\n|
-          if $entry->{author}{url};
-        $string .= qq|      </author>\n| if $entry->{author};
+
+        if ( $entry->{author} )
+        {
+            $string .= qq|      <author>\n|;
+            $string .= qq|        <name>$entry->{author}{name}</name>\n|
+              if $entry->{author}{name};
+            $string .= qq|        <email>$entry->{author}{email}</email>\n|
+              if $entry->{author}{email};
+            $string .= qq|        <url>$entry->{author}{url}</url>\n|
+              if $entry->{author}{url};
+            $string .= qq|      </author>\n|;
+        }
         $string .= qq|      <dc:subject>$entry->{subject}</dc:subject>\n|
           if $entry->{subject};
         $string .=

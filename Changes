@@ -1,5 +1,9 @@
 Revision history for Perl extension XML::Atom::SimpleFeed.
 
+0.4  Tue Feb 22 12:40:00 2005
+        - Rework the author code again to fixe more bugs that I probably should have
+          caught before releasing 0.3.  Sigh.
+
 0.3  Tue Feb 22 12:20:00 2005
         - Fixed a bug in the entry author section where the author name was always
           showing up as "name".  CPAN RT ID# 11620
