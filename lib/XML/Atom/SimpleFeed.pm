@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-$VERSION = "0.1";
+$VERSION = "0.2";
 
-# SVN ID: $Id: SimpleFeed.pm 8 2005-02-19 04:59:19Z minter $
+# SVN ID: $Id: SimpleFeed.pm 16 2005-02-20 01:53:49Z minter $
 
 use warnings;
 use strict;
@@ -14,15 +14,17 @@ sub new
     my %feed;
     my @entries;
 
-    $feed{title}     = $arg{title}     || return;
-    $feed{link}      = $arg{link}      || return;
-    $feed{modified}  = $arg{modified}  || _generate_now_w3cdtf();
-    $feed{tagline}   = $arg{tagline};
-    $feed{generator} = $arg{generator} || "XML::Atom::SimpleFeed";
-    $feed{copyright} = $arg{copyright};
-    $feed{info}      = $arg{info};
-    $feed{id}        = $arg{id};
-    $feed{author}    = $arg{author};
+    $feed{title}    = _encode_xml( $arg{title} )    || return;
+    $feed{link}     = _encode_xml( $arg{link} )     || return;
+    $feed{modified} = _encode_xml( $arg{modified} ) || _generate_now_w3cdtf();
+    $feed{tagline}  = _encode_xml( $arg{tagline} );
+    $feed{generator} = _encode_xml( $arg{generator} )
+      || "XML::Atom::SimpleFeed";
+    $feed{copyright} = _encode_xml( $arg{copyright} );
+    $feed{info}      = _encode_xml( $arg{info} );
+    $feed{id}        = _encode_xml( $arg{id} );
+    %{ $feed{author} } =
+      map { $_ => _encode_xml($_) } keys( %{ $arg{author} } );
 
     bless { _feed => \%feed, _entries => \@entries }, $class;
 }
@@ -33,16 +35,14 @@ sub add_entry
 
     my %entry;
 
-    $entry{title} = $arg{title} || return;
-    $entry{link}  = $arg{link}  || return;
-
-    # Encode ampersands
-    $entry{link} =~ s/&/&amp;/g;
+    $entry{title} = _encode_xml( $arg{title} ) || return;
+    $entry{link}  = _encode_xml( $arg{link} )  || return;
 
     if ( $arg{author} )
     {
         return unless $arg{author}->{name};
-        $entry{author} = $arg{author};
+        %{ $entry{author} } =
+          map { $_ => _encode_xml($_) } keys( %{ $arg{author} } );
     }
     elsif ( $self->{_feed}{author} )
     {
@@ -52,14 +52,15 @@ sub add_entry
     {
         return;
     }
-    $entry{modified} = $arg{modified} || _generate_now_w3cdtf();
-    $entry{issued}   = $arg{issued}   || _generate_now_w3cdtf();
-    $entry{id} = $arg{id} || _generate_entry_id( $entry{link}, $entry{issued} );
+    $entry{modified} = _encode_xml( $arg{modified} ) || _generate_now_w3cdtf();
+    $entry{issued}   = _encode_xml( $arg{issued} )   || _generate_now_w3cdtf();
+    $entry{id}       = _encode_xml( $arg{id} )
+      || _generate_entry_id( $entry{link}, $entry{issued} );
 
-    $entry{created} = $arg{created};
-    $entry{summary} = $arg{summary};
+    $entry{created} = _encode_xml( $arg{created} );
+    $entry{summary} = _encode_xml( $arg{summary} );
     $entry{content} = $arg{content};
-    $entry{subject} = $arg{subject};
+    $entry{subject} = _encode_xml( $arg{subject} );
 
     push( @{ $self->{_entries} }, \%entry );
 
@@ -81,6 +82,15 @@ sub save_file
     open( my $fh, ">", $filename ) or return;
     my $feedstring = _generate_feed($self);
     print $fh $feedstring;
+}
+
+sub _encode_xml
+{
+    my $string = shift or return;
+    $string =~ s/&/&amp;/g;
+    $string =~ s/</&lt;/g;
+
+    return $string;
 }
 
 sub _generate_feed
