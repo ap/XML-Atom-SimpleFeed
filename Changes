@@ -1,5 +1,13 @@
 Revision history for Perl extension XML::Atom::SimpleFeed.
 
+0.5  Wed Mar  9 20:59:00 2005
+        - Add an as_string method to return the feed as a scalar.
+        - Escape any <![CDATA[ or ]]> strings that appear in the content
+          CDATA section.
+        - Allow the save_file method to take either an open filehandle or 
+          a scalar containing a filename.
+        - These issues reported by Aristotle Pagaltzis.
+
 0.4  Tue Feb 22 12:40:00 2005
         - Rework the author code again to fixe more bugs that I probably should have
           caught before releasing 0.3.  Sigh.

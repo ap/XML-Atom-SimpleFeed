@@ -1,12 +1,13 @@
 #!/usr/bin/perl
-$VERSION = "0.4";
 
-# SVN ID: $Id: SimpleFeed.pm 23 2005-02-22 18:05:23Z minter $
+# SVN ID: $Id: SimpleFeed.pm 29 2005-03-10 02:09:08Z minter $
+
+package XML::Atom::SimpleFeed;
+
+$VERSION = "0.5";
 
 use warnings;
 use strict;
-
-package XML::Atom::SimpleFeed;
 
 sub new
 {
@@ -19,7 +20,7 @@ sub new
     $feed{modified} = _encode_xml( $arg{modified} ) || _generate_now_w3cdtf();
     $feed{tagline}  = _encode_xml( $arg{tagline} );
     $feed{generator} = _encode_xml( $arg{generator} )
-      || "XML::Atom::SimpleFeed";
+      || "XML::Atom::SimpleFeed $XML::Atom::SimpleFeed::VERSION";
     $feed{copyright} = _encode_xml( $arg{copyright} );
     $feed{info}      = _encode_xml( $arg{info} );
     $feed{id}        = _encode_xml( $arg{id} );
@@ -68,6 +69,8 @@ sub add_entry
     $entry{created} = _encode_xml( $arg{created} );
     $entry{summary} = _encode_xml( $arg{summary} );
     $entry{content} = $arg{content};
+    $entry{content} =~ s/]]>/]]&gt;/g if $entry{content};
+    $entry{content} =~ s/<!\[CDATA\[/&lt;![CDATA[/g if $entry{content};
     $entry{subject} = _encode_xml( $arg{subject} );
 
     push( @{ $self->{_entries} }, \%entry );
@@ -77,18 +80,27 @@ sub add_entry
 sub print
 {
     my $self       = shift;
-    my $feedstring = _generate_feed($self);
+    my $feedstring = as_string($self);
 
     print $feedstring;
 }
 
 sub save_file
 {
-    my $self     = shift;
-    my $filename = shift or return;
+    my $self = shift;
+    my $arg = shift or return;
+    my $fh;
 
-    open( my $fh, ">", $filename ) or return;
-    my $feedstring = _generate_feed($self);
+    if ( ref $arg eq "GLOB" )
+    {
+        $fh = $arg;
+    }
+    else
+    {
+        open( $fh, ">", $arg ) or return;
+    }
+
+    my $feedstring = as_string($self);
     print $fh $feedstring;
 }
 
@@ -101,7 +113,7 @@ sub _encode_xml
     return $string;
 }
 
-sub _generate_feed
+sub as_string
 {
 
 # This is somewhat kludgy, as it's just outputting simple strings instead of
@@ -245,7 +257,7 @@ XML::Atom::SimpleFeed - Generate simple Atom syndication feeds
 
 =head1 DESCRIPTION
 
-This module exists to generate basic Atom syndication feeds.  While it does not provide a full, object-oriented interface into all the nooks and crannies of Atom feeds, an Atom parser, or an Atom client API, it should be useful for people who want to generate valid Atom feeds of their content quickly and easily.
+This module exists to generate basic Atom syndication feeds.  While it does not provide a full, object-oriented interface into all the nooks and crannies of Atom feeds, an Atom parser, or an Atom client API, it should be useful for people who want to generate basic, valid Atom feeds of their content quickly and easily.
 
 =head1 METHODS
 
@@ -375,13 +387,17 @@ OPTIONAL (string).  The actual, honest-to-goodness, body of the entry.
 
 =back
 
+=item $atom->as_string();
+
+Returns the text of the atom feed as a scalar.
+
 =item $atom->print();
 
-Outputs the full atom feed as a string, suitable for printing or framing.
+Outputs the full atom feed to STDOUT;
 
-=item $atom->save_file($filename);
+=item $atom->save_file($file);
 
-Saves the full atom feed into the file referenced by $filename.  If the file cannot be opened for writing, returns undef.
+Saves the full atom feed into the file referenced by $file.  If $file is a open filehandle, the output will go there.  Otherwise, $file is taken to be the name of a file, which is opened.  If there is a problem opening the filename, undef is returned.
 
 =head1 BUGS
 
