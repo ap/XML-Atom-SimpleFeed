@@ -22,6 +22,7 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
+  XML::Simple (for generating XML)
   Test::More (for tests)
 
 COPYRIGHT AND LICENCE

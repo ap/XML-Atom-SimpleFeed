@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'XML::Atom::SimpleFeed',
     VERSION_FROM      => 'lib/XML/Atom/SimpleFeed.pm', # finds $VERSION
-    PREREQ_PM         => {Test::More}, # e.g., Module::Name => 1.1
+    PREREQ_PM         => {Test::More, XML::Simple}, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/XML/Atom/SimpleFeed.pm', # retrieve abstract from module
        AUTHOR         => 'H Wade Minter <minter@lunenburg.org>') : ()),

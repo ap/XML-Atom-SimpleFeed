@@ -1,40 +1,97 @@
 #!/usr/bin/perl
 
-# SVN ID: $Id: SimpleFeed.pm 29 2005-03-10 02:09:08Z minter $
+# SVN ID: $Id: SimpleFeed.pm 34 2005-04-28 01:55:18Z minter $
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.5";
+$VERSION = "0.6";
 
 use warnings;
 use strict;
 
+use XML::Simple;
+use Carp;
+
 sub new
 {
     my ( $class, %arg ) = @_;
-    my %feed;
+    my $ref = { feed => [] };
     my @entries;
 
-    $feed{title}    = _encode_xml( $arg{title} )    || return;
-    $feed{link}     = _encode_xml( $arg{link} )     || return;
-    $feed{modified} = _encode_xml( $arg{modified} ) || _generate_now_w3cdtf();
-    $feed{tagline}  = _encode_xml( $arg{tagline} );
-    $feed{generator} = _encode_xml( $arg{generator} )
-      || "XML::Atom::SimpleFeed $XML::Atom::SimpleFeed::VERSION";
-    $feed{copyright} = _encode_xml( $arg{copyright} );
-    $feed{info}      = _encode_xml( $arg{info} );
-    $feed{id}        = _encode_xml( $arg{id} );
-    if ( $arg{author} )
+    $ref->{feed}[0]{'xmlns:dc'} = 'http://purl.org/dc/elements/1.1/';
+    $ref->{feed}[0]{'xmlns'}    = 'http://purl.org/atom/ns#';
+    $ref->{feed}[0]{version}    = '0.3';
+
+    $ref->{feed}[0]{title} = _set_element_attrs( $arg{title} )
+      || croak 'Atom feeds must have a title.';
+
+    $ref->{feed}[0]{generator}[0] = $arg{generator}
+      || {
+        url     => 'http://search.cpan.org/dist/XML-Atom-SimpleFeed',
+        version => $XML::Atom::SimpleFeed::VERSION,
+        content => 'XML::Atom::SimpleFeed'
+      };
+
+    #    $ref->{feed}[0]{'xml:lang'} = 'en';    # FIXME
+    $ref->{feed}[0]{modified}[0] = $arg{modified} || _generate_now_w3cdtf();
+    $ref->{feed}[0]{tagline}[0] = _set_element_attrs( $arg{tagline} )
+      if $arg{tagline};
+    $ref->{feed}[0]{copyright}[0] = _set_element_attrs( $arg{copyright} )
+      if $arg{copyright};
+    $ref->{feed}[0]{id}[0] = $arg{id} if $arg{id};
+
+    if ( ref $arg{link} eq "HASH" )
     {
 
-        # If you're supplying an author, you've got to have a name.
-        return unless $arg{author}->{name};
-        %{ $feed{author} } =
-          map { $_ => _encode_xml( $arg{author}->{$_} ) }
-          keys( %{ $arg{author} } );
+        # A single hashref can be used, but rel must be alternate.
+        croak 'A single link must have rel=alternate, a href, and a type'
+          unless ( $arg{link}->{href}
+            && $arg{link}->{type}
+            && ( $arg{link}->{rel} eq "alternate" ) );
+        $ref->{feed}[0]{link}[0] = $arg{link};
+    }
+    elsif ( ref $arg{link} eq "ARRAY" )
+    {
+
+     # An array of hashrefs can be used, but at least one must be rel=alternate.
+        my $found_alternate = 0;
+        foreach my $href ( @{ $arg{link} } )
+        {
+            next unless ref $href eq "HASH";
+            $found_alternate++ if ( $href->{rel} eq "alternate" );
+            if ( $href->{rel} && $href->{href} && $href->{type} )
+            {
+                push( @{ $ref->{feed}[0]{link} }, $href );
+            }
+            else
+            {
+                croak 'The link must specify the rel, href, and type.';
+            }
+        }
+        croak 'At least one of your links must be of type rel = alternate.'
+          unless $found_alternate;
+    }
+    elsif ( $arg{link} )
+    {
+
+   # A simple string can be used, and will be taken as the href of rel=alternate
+        $ref->{feed}[0]{link}[0] =
+          { rel => 'alternate', href => $arg{link}, type => 'text/html' };
+    }
+    else
+    {
+        croak 'Atom feeds must have a link to an alternate representation.';
     }
 
-    bless { _feed => \%feed, _entries => \@entries }, $class;
+    if ( $arg{author}->{name} )
+    {
+        %{ $ref->{feed}[0]{author}[0] } =
+          map { $_ => [ $arg{author}->{$_} ] } keys( %{ $arg{author} } );
+    }
+
+    $ref->{feed}[0]{entry} = [];
+
+    bless $ref, $class;
 }
 
 sub add_entry
@@ -43,52 +100,98 @@ sub add_entry
 
     my %entry;
 
-    $entry{title} = _encode_xml( $arg{title} ) || return;
-    $entry{link}  = _encode_xml( $arg{link} )  || return;
+    if ( ref $arg{link} eq "HASH" )
+    {
+        croak 'A single link must have rel=alternate, a href, and a type'
+          unless ( $arg{link}->{href}
+            && $arg{link}->{type}
+            && ( $arg{link}->{rel} eq "alternate" ) );
+        $entry{link}->[0] = $arg{link};
+    }
+    elsif ( ref $arg{link} eq "ARRAY" )
+    {
+
+     # An array of hashrefs can be used, but at least one must be rel=alternate.
+        my $found_alternate = 0;
+        foreach my $href ( @{ $arg{link} } )
+        {
+            next unless ref $href eq "HASH";
+            $found_alternate++ if ( $href->{rel} eq "alternate" );
+            if ( $href->{rel} && $href->{href} && $href->{type} )
+            {
+                push( @{ $entry{link} }, $href );
+            }
+            else
+            {
+                croak 'The link must specify the rel, href, and type.';
+            }
+        }
+        croak 'At least one of your links must be of type rel = alternate.'
+          unless $found_alternate;
+    }
+    elsif ( $arg{link} )
+    {
+        $entry{link}->[0] =
+          { rel => 'alternate', href => $arg{link}, type => 'text/html' };
+    }
+    else
+    {
+        croak
+          'Atom feed entries must have a link to an alternate representation.';
+    }
+
+    $entry{title}->[0] = _set_element_attrs( $arg{title} )
+      || croak 'Atom feed entries must have a title.';
 
     if ( $arg{author} )
     {
-        return unless $arg{author}->{name};
+        croak 'Atom feed entry authors must have a name given.'
+          unless $arg{author}->{name};
         %{ $entry{author} } =
-          map { $_ => _encode_xml( $arg{author}->{$_} ) }
+          map { $_ => [ $arg{author}->{$_} ] }
           keys( %{ $arg{author} } );
     }
-    elsif ( $self->{_feed}{author} )
+    elsif ( $self->{feed}[0]{author} )
     {
         $entry{author} = undef;
     }
     else
     {
-        return;
+        croak
+          'Atom feed entries must have an author if none was given for the feed itself.';
     }
-    $entry{modified} = _encode_xml( $arg{modified} ) || _generate_now_w3cdtf();
-    $entry{issued}   = _encode_xml( $arg{issued} )   || _generate_now_w3cdtf();
-    $entry{id}       = _encode_xml( $arg{id} )
-      || _generate_entry_id( $entry{link}, $entry{issued} );
 
-    $entry{created} = _encode_xml( $arg{created} );
-    $entry{summary} = _encode_xml( $arg{summary} );
-    $entry{content} = $arg{content};
-    $entry{content} =~ s/]]>/]]&gt;/g if $entry{content};
-    $entry{content} =~ s/<!\[CDATA\[/&lt;![CDATA[/g if $entry{content};
-    $entry{subject} = _encode_xml( $arg{subject} );
+    $entry{modified}->[0] = $arg{modified} || _generate_now_w3cdtf();
+    $entry{issued}->[0]   = $arg{issued}   || _generate_now_w3cdtf();
+    $entry{id}->[0]       = $arg{id}
+      || _generate_entry_id( $entry{link}[0]->{href}, $entry{issued}->[0] );
 
-    push( @{ $self->{_entries} }, \%entry );
+    $entry{created}->[0] = _set_element_attrs( $arg{created} ) if $arg{created};
+    $entry{summary}->[0] = _set_element_attrs( $arg{summary} ) if $arg{summary};
+
+    $entry{content}->[0] = _set_element_attrs( $arg{content} ) if $arg{content};
+
+    $entry{'dc:subject'}->[0] = $arg{subject} if $arg{subject};
+
+    push( @{ $self->{feed}[0]{entry} }, \%entry );
 
 }
 
 sub print
 {
-    my $self       = shift;
-    my $feedstring = as_string($self);
+    my $self = shift;
+    my $xml  = as_string($self);
 
-    print $feedstring;
+    print $xml;
 }
 
 sub save_file
 {
     my $self = shift;
-    my $arg = shift or return;
+    my $arg  = shift
+      || croak 'Usage: '
+      . __PACKAGE__
+      . '::save_file( $self, $fh_or_filename )';
     my $fh;
 
     if ( ref $arg eq "GLOB" )
@@ -97,97 +200,49 @@ sub save_file
     }
     else
     {
-        open( $fh, ">", $arg ) or return;
+        open( $fh, ">", $arg ) || return;
     }
 
-    my $feedstring = as_string($self);
-    print $fh $feedstring;
-}
+    my $content = as_string($self);
+    print $fh $content;
 
-sub _encode_xml
-{
-    my $string = shift or return;
-    $string =~ s/&/&amp;/g;
-    $string =~ s/</&lt;/g;
+    close($fh) || return if $arg != $fh;
 
-    return $string;
+    return 1;
 }
 
 sub as_string
 {
-
-# This is somewhat kludgy, as it's just outputting simple strings instead of
-# doing "real XML" stuff.  But, it should work well enough in the general case
-# and, if you need real XML shizzle, there are plenty of real XML modules out there.
-# :-)
-
     my $self = shift;
 
-    my $string;
+    my $xml = XMLout(
+        $self,
+        SuppressEmpty => 1,
+        RootName      => 'feed',
+        KeepRoot      => 1,
+        AttrIndent    => 1
+    );
+    return $xml;
+}
 
-    $string .= qq|<?xml version="1.0" encoding="iso-8859-1"?>\n|;
-    $string .=
-      qq|<feed version="0.3" xmlns="http://purl.org/atom/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xml:lang="en">\n|;
-    $string .= qq|  <title>$self->{_feed}{title}</title>\n|;
-    $string .=
-      qq|  <link rel="alternate" type="text/html" href="$self->{_feed}{link}" />\n|;
-    $string .= qq|  <modified>$self->{_feed}{modified}</modified>\n|;
-    $string .= qq|  <id>$self->{_feed}{id}</id>\n| if $self->{_feed}{id};
-    $string .= qq|  <tagline>$self->{_feed}{tagline}</tagline>\n|
-      if $self->{_feed}{tagline};
+sub _set_element_attrs
+{
+    my $arg = shift || return;
+    my %element;
 
-    if ( $self->{_feed}{author} )
+    if ( ref $arg eq "HASH" )
     {
-        $string .= qq|  <author>\n|;
-        $string .= qq|    <name>$self->{_feed}{author}{name}</name>\n|
-          if $self->{_feed}{author}{name};
-        $string .= qq|    <email>$self->{_feed}{author}{email}</email>\n|
-          if $self->{_feed}{author}{email};
-        $string .= qq|    <url>$self->{_feed}{author}{url}</url>\n|
-          if $self->{_feed}{author}{url};
-        $string .= qq|  </author>\n|;
+        die 'Internal error: dude, where\'s my content?' unless $arg->{content};
+        %element =
+          map { $_ => [ $arg->{$_} ] }
+          keys( %{$arg} );
     }
-    $string .= qq|  <generator>$self->{_feed}{generator}</generator>\n|
-      if $self->{_feed}{generator};
-    $string .= qq|  <copyright>$self->{_feed}{copyright}</copyright>\n|
-      if $self->{_feed}{copyright};
-
-    foreach my $entry ( @{ $self->{_entries} } )
+    else
     {
-        $string .= qq|  <entry>\n|;
-        $string .= qq|    <title>$entry->{title}</title>\n|;
-        $string .=
-          qq|    <link rel="alternate" type="text/html" href="$entry->{link}" />\n|;
-        $string .= qq|      <modified>$entry->{modified}</modified>\n|;
-        $string .= qq|      <issued>$entry->{issued}</issued>\n|;
-        $string .= qq|      <id>$entry->{id}</id>\n|;
-        $string .= qq|      <created>$entry->{created}</created>\n|
-          if $entry->{created};
-        $string .= qq|      <summary>$entry->{summary}</summary>\n|
-          if $entry->{summary};
-
-        if ( $entry->{author} )
-        {
-            $string .= qq|      <author>\n|;
-            $string .= qq|        <name>$entry->{author}{name}</name>\n|
-              if $entry->{author}{name};
-            $string .= qq|        <email>$entry->{author}{email}</email>\n|
-              if $entry->{author}{email};
-            $string .= qq|        <url>$entry->{author}{url}</url>\n|
-              if $entry->{author}{url};
-            $string .= qq|      </author>\n|;
-        }
-        $string .= qq|      <dc:subject>$entry->{subject}</dc:subject>\n|
-          if $entry->{subject};
-        $string .=
-          qq|      <content type="text/html" mode="escaped" xml:lang="en"><![CDATA[$entry->{content}]]></content>\n|
-          if $entry->{content};
-        $string .= qq|    </entry>\n|;
+        %element = ( mode => 'escaped', type => 'text/html', content => $arg );
     }
 
-    $string .= qq|</feed>\n|;
-
-    return $string;
+    return \%element;
 }
 
 sub _generate_now_w3cdtf
@@ -230,34 +285,62 @@ XML::Atom::SimpleFeed - Generate simple Atom syndication feeds
 
 =head1 SYNOPSIS
 
-  use XML::Atom::SimpleFeed;
+    use XML::Atom::SimpleFeed;
 
-  # Create the feed object
-  my $atom = XML::Atom::SimpleFeed->new(
-      title    => "My Atom Feed",
-      link     => "http://www.example.com/blog/",
-      modified => "2005-02-18T15:00:00Z",
-      tagline  => "This is an example feed.  Nothing to see here.  Move along."
-    )
-    or die;
+    # Create the feed object
+    my $atom = XML::Atom::SimpleFeed->new(
+        title    => "My Atom Feed",
+        link     => "http://www.example.com/blog/",
+        modified => "2005-02-18T15:00:00Z",
+        tagline => "This is an example feed.  Nothing to see here.  Move along."
+    );
 
-  # Add an entry to the feed
-  $atom->add_entry(
-      title    => "A Sample Entry",
-      link     => "http://www.example.com/blog/entries/1234",
-      author   => { name => "J. Random Hacker", email => 'jrh@example.com' },
-      modified => "2005-02-18T16:45:00Z",
-      issued   => "2005-02-18T15:30:00Z",
-      content  => "This is the body of the entry"
-    )
-    or die;
+    # Add an entry to the feed
+    $atom->add_entry(
+        title    => "A Sample Entry",
+        link     => "http://www.example.com/blog/entries/1234",
+        author   => { name => "J. Random Hacker", email => 'jrh@example.com' },
+        modified => "2005-02-18T16:45:00Z",
+        issued   => "2005-02-18T15:30:00Z",
+        content  => "This is the body of the entry"
+    );
 
-  # Print out the feed
-  $atom->print;
+    # Add a more complicated entry
+    $atom->add_entry(
+        title => 'A more complicated example.',
+        link  => [
+            {
+                rel  => 'alternate',
+                href => 'http://www.example.com/blog/entries/1337',
+                type => 'text/html'
+            },
+            {
+                rel  => 'start',
+                href => 'http://www.example.com/blog/entries/1',
+                type => 'text/html'
+            }
+        ],
+        author => {
+            name  => 'Foo Bar',
+            url   => 'http://www.example.com/foobar/',
+            email => 'foo@example.com'
+        },
+
+        copyright => 'Copyright 2005 by Foo Bar Inc.',
+        generator => 'Elite Blogs LLP',
+        subject   => 'Technology',
+        content   => 'I have nothing to say now.'
+    );
+
+    # Print out the feed
+    $atom->print;
+
 
 =head1 DESCRIPTION
 
-This module exists to generate basic Atom syndication feeds.  While it does not provide a full, object-oriented interface into all the nooks and crannies of Atom feeds, an Atom parser, or an Atom client API, it should be useful for people who want to generate basic, valid Atom feeds of their content quickly and easily.
+This module exists to generate basic Atom syndication feeds.  While it does not provide a full, object-oriented interface into all the nooks and crannies of Atom feeds, an Atom parser, or an Atom client API, it should be useful for people who want to generate basic, valid Atom feeds of their content quickly and easily. 
+
+The module should, by default, allow you to produce valid Atom feeds by supplying simple strings to fill in most structures.  However,  you can provide more advanced structures (hashes, arrays) to do more advanced things if you need to.  Check the docs to see which options take more complex datatypes.
 
 =head1 METHODS
 
@@ -265,17 +348,17 @@ This module exists to generate basic Atom syndication feeds.  While it does not 
 
 =item my $atom = XML::Atom::SimpleFeed->new(%args);
 
-This creates a new XML::Atom::SimpleFeed objects with the supplied parameters.  The parameters are supplied as a hash.  Some parameters are required, some are optional.  They are:
+This creates a new XML::Atom::SimpleFeed objects with the supplied parameters.  The parameters are supplied as a hash.  Some parameters are required, some are optional.  For many fields, the default is to encode the item as escaped HTML, so that you don't accidentally produce invalid feeds by including an HTML tag.  They are:
 
 =over
 
 =item * title
 
-REQUIRED (string).  The title of the Atom feed.
+REQUIRED (string/hash).  The title of the Atom feed.  If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =item * link
 
-REQUIRED (string).  The URL link of the Atom feed.  Normally points to the home page of the resource you are syndicating.
+REQUIRED (string/hash/array).  The URL link of the Atom feed.  Normally points to the home page of the resource you are syndicating.  If supplied as a string, it will be given the parameters rel=alternate, type=text/html.  If supplied as a hash, you must provide the keys for rel=alternate, the href, and the type ( such as link => { rel=>'alternate', href=>'http://www.example.com/', type=>'text/plain'} ).  If supplied as an array, must be an array of hashes, each hash providing the rel, href, and type, and at least one being rel=alternate.
 
 =item * modified
 
@@ -283,19 +366,19 @@ OPTIONAL (string).  The date the feed was last modified in W3CDTF format.  This 
 
 =item * tagline
 
-OPTIONAL (string).  A description or tagline for the feed.
+OPTIONAL (string/hash).  A description or tagline for the feed.  If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =item * generator
 
-OPTIONAL (string).  The software agent used to generate the feed.  If not supplied, will be set to "XML::Atom::SimpleFeed"
+OPTIONAL (string/hash).  The software agent used to generate the feed.  Can be supplied as a string, or a hash providing a URL, version, and content.  If not supplied, will be set to the hash { url => 'http://search.cpan.org/dist/XML-Atom-SimpleFeed', version => $XML::Atom::SimpleFeed::VERSION, content => 'XML::Atom::SimpleFeed' }
 
 =item * copyright
 
-OPTIONAL (string).  The copyright string for the feed.
+OPTIONAL (string/hash).  The copyright string for the feed.  If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =item * info
 
-OPTIONAL (string).  A human-readable explanation of the feed format itself.
+OPTIONAL (string/hash).  A human-readable explanation of the feed format itself.  If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =item * id 
 
@@ -303,7 +386,7 @@ OPTIONAL (string). A permanent, globally unique identifier for the feed.
 
 =item * author 
 
-OPTIONAL (hash).  A hash of information about the author of the feed.  If this element exists, it will be used to provide author information for a feed entry, if no author information was provided for the entry.  The author hash contains the following information:
+OPTIONAL (hash).  An anonymous hash of information about the author of the feed.  If this element exists, it will be used to provide author information for a feed entry, if no author information was provided for the entry.  The author hash contains the following information:
 
 =over
 
@@ -331,15 +414,15 @@ This method adds an entry into the atom feed.  Its arguments are supplied as a h
 
 =item * title
 
-REQUIRED (string).  The title of the entry.
+REQUIRED (string/hash).  The title of the entry. If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =item * link
 
-REQUIRED (string).  The URL to the entry itself.  Should be unique to assure valid feeds.
+REQUIRED (string/hash/array).  The URL link of the entry itself.  Should be unique to ensure valid feeds.  If supplied as a string, it will be given the parameters rel=alternate, type=text/html.  If supplied as a hash, you must provide the keys for rel=alternate, the href, and the type ( such as link => { rel=>'alternate', href=>'http://www.example.com/', type=>'text/plain'} ).  If supplied as an array, must be an array of hashes, each hash providing the rel, href, and type, and at least one being rel=alternate.
 
 =item * author
 
-OPTIONAL (hash).  Optional with a caveat.  A hash of information about the author of the entry.  If this element is left blank, the author information for the feed will be used.  If that information was not provided, the method will return undef, since the author is required.
+OPTIONAL/REQUIRED (hash).  A hash of information about the author of the entry.  You may only omit this if you have specified author information for the feed itself.
 
 =over
 
@@ -375,15 +458,15 @@ OPTIONAL (string).  The date and time the entry was created (differs from "issue
 
 =item * summary
 
-OPTIONAL (string).  A short summary of the entry.
+OPTIONAL (string/hash).  A short summary of the entry.  If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =item * subject
 
-OPTIONAL (string).  The subject of the entry.
+OPTIONAL (string).  The subject of the entry.  Part of Dublin Core.
 
 =item * content
 
-OPTIONAL (string).  The actual, honest-to-goodness, body of the entry.
+OPTIONAL (string/hash).  The actual, honest-to-goodness, body of the entry.  If supplied as a string, it will be equivalent to the hash { mode => 'escaped', type => 'text/html', content => $string }.  You can override this by supplying an anonymous hash with those fields defined.
 
 =back
 
@@ -397,17 +480,17 @@ Outputs the full atom feed to STDOUT;
 
 =item $atom->save_file($file);
 
-Saves the full atom feed into the file referenced by $file.  If $file is a open filehandle, the output will go there.  Otherwise, $file is taken to be the name of a file, which is opened.  If there is a problem opening the filename, undef is returned.
+Saves the full atom feed into the file referenced by $file.  If $file is a open filehandle, the output will go there.  Otherwise, $file is taken to be the name of a file which should be written to. Returns true on success.
 
 =head1 BUGS
 
 Most likely does not implement all the useful features of an Atom feed.  Comments and patches welcome!
 
-Language is hardcoded as "en"
-
 =head1 SEE ALSO
 
 XML::Atom L<http://search.cpan.org/dist/XML-Atom/>
+
+XML::Simple L<http://search.cpan.org/dist/XML-Simple/>
 
 Atom Enabled L<http://www.atomenabled.org/>
 
@@ -417,6 +500,10 @@ W3CDTF Spec L<http://www.w3.org/TR/NOTE-datetime>
 
 H. Wade Minter, E<lt>minter@lunenburg.orgE<gt>
 L<http://www.lunenburg.org/>
+
+=head1 CREDITS
+
+Aristotle Pagaltzis, for suggestions on making the module much better behaved.
 
 =head1 COPYRIGHT AND LICENSE
 
