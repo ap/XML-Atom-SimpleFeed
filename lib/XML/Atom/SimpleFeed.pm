@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 
-# SVN ID: $Id: SimpleFeed.pm 34 2005-04-28 01:55:18Z minter $
+# SVN ID: $Id: SimpleFeed.pm 38 2005-05-06 15:10:02Z minter $
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.6";
+$VERSION = "0.7";
 
 use warnings;
 use strict;

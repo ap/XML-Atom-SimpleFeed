@@ -1,11 +1,12 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         XML-Atom-SimpleFeed
-version:      0.6
+version:      0.7
 version_from: lib/XML/Atom/SimpleFeed.pm
 installdirs:  site
 requires:
-    Test::More:                    XML::Simple
+    Test::More:                    0
+    XML::Simple:                   2.1
 
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.25
+generated_by: ExtUtils::MakeMaker version 6.17
