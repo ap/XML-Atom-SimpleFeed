@@ -1,7 +1,11 @@
+Build.PL
 Changes
-Makefile.PL
 MANIFEST
+META.yml # Will be created by "make dist"
 README
-t/XML-Atom-SimpleFeed.t
+examples/example.pl
 lib/XML/Atom/SimpleFeed.pm
-META.yml                                 Module meta-data (added by MakeMaker)
+t/00.load.t
+t/pod-coverage.t
+t/pod.t
+Makefile.PL

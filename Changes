@@ -1,4 +1,14 @@
-Revision history for Perl extension XML::Atom::SimpleFeed.
+Revision history for XML-Atom-SimpleFeed
+
+0.8  Wed Sep 28 03:49:48 2005
+        - Emit Atom 1.0. Documentation updated to reflect Atom 1.0. Usage
+          according to Atom 0.3 will transparently generate 1.0 elements but
+          emit deprectation warnings.
+        - Remove _generate_entry_id and use HTTP URLs as IDs by default. Using
+          tag: URIs is useful for generating the ID once, up front, so that it
+          won't change even if the permalink does. But if the ID is generated
+          from the permalink, we might as well use the permalink itself.
+        - Use a SAX2 handler instead of XML::Simple for output.
 
 0.7  Wed May 06 11:06:00 2005
         - Fix the module prereq in Makefile.PL to actually do the proper 
@@ -6,7 +16,7 @@ Revision history for Perl extension XML::Atom::SimpleFeed.
 
 0.6  Wed Apr 27 21:55:00 2005
         - Use XML::Simple to generate the XML, instead of doing strings by hand.
-        - Make the module more robust - it now can handle multiple titles, 
+        - Make the module more robust: it now can handle multiple titles, 
           links, etc. by passing in arrayrefs and hashrefs, while still 
           allowing for simple use with strings.
         - Many thanks to Aristotle Pagaltzis for the help.
@@ -34,6 +44,5 @@ Revision history for Perl extension XML::Atom::SimpleFeed.
 
 0.1  Fri Feb 18 17:23:51 2005
         - Initial release.
-	- original version; created by h2xs 1.23 with options
-		-X -n XML::Atom::SimpleFeed
-
+        - original version; created by h2xs 1.23 with options
+          -X -n XML::Atom::SimpleFeed

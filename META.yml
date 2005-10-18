@@ -1,12 +1,18 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         XML-Atom-SimpleFeed
-version:      0.7
-version_from: lib/XML/Atom/SimpleFeed.pm
-installdirs:  site
-requires:
-    Test::More:                    0
-    XML::Simple:                   2.1
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.17
+---
+name: XML-Atom-SimpleFeed
+version: 0.8_001
+author:
+  - Aristotle Pagaltzis <pagaltzis@gmx.de>
+abstract: No-fuss generation of Atom syndication feeds
+license: perl
+recommends:
+  XML::SAX::Writer: 0
+build_requires:
+  Test::More: 0
+  Test::Pod: 0
+  Test::Pod::Coverage: 0
+provides:
+  XML::Atom::SimpleFeed:
+    file: lib/XML/Atom/SimpleFeed.pm
+    version: 0.8_001
+generated_by: Module::Build version 0.2611
