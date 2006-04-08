@@ -13,13 +13,6 @@ To install this module, run the following commands:
     ./Build test
     ./Build install
 
-DEPENDENCIES
-
-You will need some kind of SAX handler to use this module.
-
-If all you want is to output XML, that would be one of the SAX serialiser
-modules. XML::SAX::Writer is recommended.
-
 COPYRIGHT AND LICENCE
 
 Copyright (C) 2005, Aristotle Pagaltzis

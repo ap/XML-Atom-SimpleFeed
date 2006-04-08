@@ -6,7 +6,11 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.8_001
+This document describes XML::Atom::SimpleFeed version 0.8_002
+
+FIXME That's the theory anyway. In practice, there are discrepances between
+code and docs. But that shouldn't be too catastrophic since the documentation
+inaccuracies mostly consist of omissions.
 
 =head1 SYNOPSIS
 
@@ -175,21 +179,17 @@ The date and time the entry was last updated. You can use this to signal changes
 
 =back
 
-=item C<generate( [$handler] )>
-
-Serialises the feed using a SAX2 handler. If you don't pass a handler to be used, a default L<XML::SAX::Writer> or L<XML::Genx::SAXWriter> handler will be instantiated, which results in the feed being printed to C<STDOUT>.
-
 =item C<as_string>
 
-Returns the text of the feed as a string. This is a convenience wrapper around C<generate>.
+Returns the text of the feed as a string.
 
 =item C<print>
 
-Outputs the feed to STDOUT. This is just an alias to C<generate>.
+Outputs the feed to STDOUT.
 
 =item C<save_file( $file )>
 
-Saves the feed into C<$file>, which can be a filename or filehandle. This is a convenience wrapper that passes a SAX handler instantiated with C<-E<gt>new( Output =E<gt> $file )> to C<generate>.
+Saves the feed into C<$file>, which can be a filename or filehandle.
 
 =back
 
@@ -364,26 +364,9 @@ You used a hash without a C<content> key to specify a text construct, such as a 
 =back
 
 
-=head2 Internal fatal errors
-
-=over
-
-=item C<Couldn't load default SAX handler>
-
-You did not pass a SAX handler object to C<generate>, but you do not have L<XML::SAX::Writer> or L<XML::Genx::SAXWriter> installed either.
-
-Install one of these modules or make sure your code passes some SAX handler object to C<generate>.
-
-=back
-
-
 =head1 SEE ALSO
 
 =over
-
-=item * L<XML::SAX::Writer> / L<XML::Genx::SAXWriter>
-
-=item * L<XML::Atom>
 
 =item * Atom Enabled L<http://www.atomenabled.org/>
 
@@ -391,47 +374,41 @@ Install one of these modules or make sure your code passes some SAX handler obje
 
 =item * RFC 3066 L<http://rfc.net/rfc3066.html>
 
+=item * L<XML::Atom>
+
 =back
 
 
-=head1 DEPENDENCIES
-
-You will need some kind of SAX handler to use this module.
-
-If all you want is to output XML, that would be one of the SAX serialiser modules. L<XML::SAX::Writer> is recommended.
-
 =head1 BUGS AND LIMITATIONS
 
-Feeds with extension elements cannot be generated using this module.
+The L</TODO> section is not empty.
 
-Only one author per feed and entry is currently supported and no contributors can be mentioned.
-
-More Atom format features might be missing.
+Some Atom format features might be missing.
 
 There is currently no support for C<xml:lang> and C<xml:base>. This should be addressed in a future version.
 
-No bugs have been reported.
+Feeds with extension elements cannot be generated using this module. This is by design.
+
+The module does nothing to ensure that text constructs of type C<xhtml> and entry contents using either that or an XML media type are well-formed. This is by design.
 
 Please report any bugs or feature requests to C<bug-xml-atom-simplefeed@rt.cpan.org>, or through the web interface at L<http://rt.cpan.org>.
 
 
-=head1 DEVELOPMENT NOTES
+=head1 TODO
 
 =over
 
-=item * Fill in the FIXME POD bits
+=item * Handle all possible media types in C<_content>!
 
-=item * Write reams of unit tests
+=item * Allow more than one author, and allow for contributors
+
+=item * Reorganize "Constructs" POD section and other parts
+
+=item * Fill in the FIXME POD bits, clear up omissions
 
 =item * Add some knobs so users can twiddle which warnings are emitted
 
-=item * Find a way to stream output
-
-This is difficult with the current interface, since C<print>, C<as_string> etc. only get called at the very end of the object's lifecycle. To stream the output, the SAX handler used would have to be supplied at the very beginning instead. How to reconcile the two?
-
-=item * Possibly switch to L<Class::Std>
-
-But that may not be necessary if I find a good solution for streaming output, since that would obviate the need for keeping any internal state. That would also make the module more parsimonious with memory; not that that seems likely to be a great concern for a module generating Atom feeds.
+=item * Write reams of unit tests
 
 =back
 
@@ -462,15 +439,50 @@ use strict;
 package XML::Atom::SimpleFeed;
 
 use vars qw( $VERSION );
-$VERSION = "0.8_001";
+$VERSION = "0.8_002";
 
 use Carp;
 use POSIX qw( strftime );
 
-# constants
-sub ATOM_NS    () { 'http://www.w3.org/2005/Atom' }
-sub XHTML_NS   () { 'http://www.w3.org/1999/xhtml' }
-sub W3C_DATETIME () { '%Y-%m-%dT%H:%M:%SZ' }
+sub _ATOM_NS      () { 'http://www.w3.org/2005/Atom' }
+sub _XHTML_NS     () { 'http://www.w3.org/1999/xhtml' }
+sub _W3C_DATETIME () { '%Y-%m-%dT%H:%M:%SZ' }
+
+sub _DEFAULT_GENERATOR () {
+	uri     => 'http://search.cpan.org/dist/XML-Atom-SimpleFeed',
+	version => $VERSION,
+	name    => 'XML::Atom::SimpleFeed'
+}
+
+# named @$self indices
+sub _HAVE_AUTHOR    () { 0 }
+sub _GLOBAL_UPDATED () { 1 }
+sub _FEED_DATA      () { 2 } # this one must always be last
+
+####################################################################
+# superminimal XML writer
+
+sub _pcdata {
+	local $_ = shift;
+	s{ ( [<'"&>\x{80}-\x{10FFFF}] ) }{ '&#' . ord( $1 ) . ';' }gex;
+	return $_;
+}
+
+sub _tag {
+	my $name = shift;
+	my $attr = '';
+	if( ref $name eq 'ARRAY' ) {
+		my $i = 1;
+		while( $i < @$name ) {
+			$attr .= ' ' . $name->[ $i ] . '="' . _pcdata( $name->[ $i + 1 ] ) . '"';
+			$i += 2;
+		}
+		$name = shift @$name;
+	}
+	@_ ? "<$name$attr>" . join( '', @_ ) . "</$name>" : "<$name$attr/>";
+}
+
+####################################################################
 
 sub _deprecate {
 	my ( $arg, $old, $new ) = @_;
@@ -490,144 +502,189 @@ sub _deprecate {
 	}
 }
 
+sub _plural(&@) {
+	my ( $code, $data ) = @_;
+	$code->( ref $data eq 'ARRAY' ? @$data : $data );
+}
+
+sub _pairs(&@) {
+	my ( $code, $hash ) = splice @_, 0, 2;
+	map { exists $hash->{ $_ } ? $code->() : () } @_;
+}
+
+sub _alternate_link {
+	map {
+		! ref $_ ? $_
+		#	: ref $_ eq 'HASH' and ( ! exists $_->{ rel } or $_->{ rel } eq 'alternate' ) ? $_->{ href }
+		: ()
+	} @_;
+}
+
+####################################################################
+
 sub _person_construct {
-	my $arg = shift || return;
-
-	if( ref $arg eq 'HASH' ) {
-		local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-		croak 'Missing person name' if not exists $arg->{ name };
-		return $arg;
-	}
-	else {
-		return { name => $arg };
-	}
-}
-
-sub _link_construct {
-	my $arg = shift || return;
-
-	if( ref $arg eq 'HASH' ) {
-		local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-		croak 'Link without href' if not exists $arg->{ href };
-		return $arg;
-	}
-	else {
-		return { href => $arg };
-	}
-}
-
-sub _category_construct {
-	my $arg = shift || return;
-
-	if( ref $arg eq 'HASH' ) {
-		local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-		croak 'Category without term' if not exists $arg->{ term };
-		return $arg;
-	}
-	else {
-		return { term => $arg };
-	}
+	my $name = shift;
+	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+	join '', map {
+		my $arg = $_;
+		if( ref $arg eq 'HASH' ) {
+			_deprecate $arg, url => 'uri';
+			croak 'Missing person name' if not exists $arg->{ name };
+			return _tag $name => _pairs { _tag( $_ => _pcdata $arg->{ $_ } ) } $arg => qw( name email uri );
+		}
+		else {
+			return _tag $name => _tag name => $arg;
+		}
+	} @_;
 }
 
 sub _text_construct {
-	my $arg = shift || return;
-
-	if( ref $arg eq 'HASH' ) {
-		local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-		croak "Type '$arg->{type}' not allowed in text construct"
-			if not grep $_ eq $arg->{ type }, qw( text html xhtml );
-		croak q{No 'src' key allowed in text construct}
-			if exists $arg->{ src };
-	}
-
-	return _content_construct( $arg );
-}
-
-sub _content_construct {
-	my $arg = shift || return;
-
-	if( ref $arg eq 'HASH' ) {
-		croak q{Missing content} unless $arg->{ content };
-		return $arg;
-	}
-	else {
-		return { type => 'html', content => $arg };
-	}
-}
-
-sub _links {
-	my ( $arg ) = @_;
-
+	my $name = shift;
 	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+	join '', map {
+		my $arg = $_;
 
-	my @link;
+		if( ref $arg eq 'HASH' ) {
+			my $type = exists $arg->{ type } ? $arg->{ type } : 'html';
 
-	if( ref $arg eq "ARRAY" ) { @link = map _link_construct( $_ ), @$arg }
-	else { $link[ 0 ] = _link_construct( $arg ) if defined $arg }
+			croak q{Missing content} unless exists $arg->{ content };
+			my $content = delete $arg->{ content };
 
-	my @alt = grep { not( exists $_->{ rel } ) or $_->{ rel } eq 'alternate' } @link; 
-	croak 'Too many alternate links' if @alt > 1;
+			if( $type eq 'xhtml' ) {
+				$content = _tag [ div => xmlns => _XHTML_NS ], $content;
+			}
+			elsif( $type eq 'html' or $type eq 'text' ) {
+				$content = _pcdata $content;
+			}
+			else {
+				croak "Type '$type' not allowed in text construct";
+			}
 
-	return \@link;
+			return _tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
+		}
+		else {
+			return _tag [ $name => type => 'html' ], _pcdata( $arg );
+		}
+	} @_;
 }
 
-sub _categories {
-	my ( $arg ) = @_;
-
+sub _content {
 	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+	join '', map {
+		my $arg = $_;
 
-	my @cat;
+		if( ref $arg eq 'HASH' ) {
+			my $type = exists $arg->{ type } ? $arg->{ type } : 'html';
+			
+			croak q{Missing content} unless exists $arg->{ content };
+			my $content = delete $arg->{ content };
 
-	if( ref $arg eq "ARRAY" ) { @cat = map _category_construct( $_ ), @$arg }
-	else { $cat[ 0 ] = _category_construct( $arg ) if defined $arg }
+			if( $type eq 'xhtml' ) {
+				$content = _tag [ div => xmlns => _XHTML_NS ], $content;
+			}
+			elsif( $type eq 'html' or $type eq 'text' ) {
+				$content = _pcdata $content;
+			}
+			# else: no need to do anything for XML types
 
-	return \@cat;
+			return _tag [ content => $type ne 'text' ? ( type => $type ) : () ], $content;
+		}
+		else {
+			return _tag [ content => type => 'html' ], _pcdata( $arg );
+		}
+	} @_;
 }
 
-my (
-	%id, %title, %subtitle, %author, %rights, %generator, %links, %summary,
-	%content, %categories, %published, %updated, %entries,
-);
+sub _link {
+	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+	join '', map {
+		my $arg = $_;
+
+		if( ref $arg eq 'HASH' ) {
+			croak 'Link without href' if not exists $arg->{ href };
+			return _tag [ link => _pairs { $_ => $arg->{ $_ } } $arg => qw( href rel type title hreflang length ) ];
+		}
+		else {
+			return _tag [ link => href => $arg ];
+		}
+	} @_;
+}
+
+sub _category {
+	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+	join '', map {
+		my $arg = $_;
+
+		if( ref $arg eq 'HASH' ) {
+			croak 'Category without term' if not exists $arg->{ term };
+			return _tag [ category => _pairs { $_ => $arg->{ $_ } } $arg => qw( term scheme label ) ];
+		}
+		else {
+			return _tag [ category => term => $arg ];
+		}
+	} @_;
+}
+
+sub _generator {
+	join '', map {
+		my $arg = $_;
+
+		if( ref $arg eq 'HASH' ) {
+			_deprecate $arg, url => 'uri';
+			croak 'Missing generator name' if not exists $arg->{ name };
+			my $content = delete $arg->{ name };
+			return _tag [ generator => _pairs { $_ => $arg->{ $_ } } $arg => qw( uri version ) ], _pcdata( $content );
+		}
+		else {
+			return _tag generator => _pcdata( $arg );
+		}
+	} @_;
+}
 
 sub new {
 	my $class = shift;
 	my %arg = @_;
+
+	croak 'Missing feed title' if not exists $arg{ title };
+
+	my @alt;
+	@alt = _plural { &_alternate_link } $arg{ link } if exists $arg{ link };
+
+	croak 'Too many alternate links' if @alt > 1;
+
+	if( not exists $arg{ id } ) {
+		if( @alt ) {
+			carp 'Missing feed ID, falling back to the alternate link';
+			$arg{ id } = $alt[ 0 ];
+		}
+		else {
+			croak 'Missing feed ID (and no alternate link available as fallback)';
+		}
+	}
 
 	_deprecate \%arg, tagline => 'subtitle';
 	_deprecate \%arg, copyright => 'rights';
 	_deprecate \%arg, modified => 'updated';
 	_deprecate \%arg, info => undef;
 
-	_deprecate $arg{ author }, url => 'uri' if ref $arg{ author } eq 'HASH';
-	_deprecate $arg{ generator }, url => 'uri' if ref $arg{ generator } eq 'HASH';
+	my $self = [];
 
-	my $self = do { local $_ = 1; \$_ }; # get dummy reference
+	$self->[ _HAVE_AUTHOR ] = exists $arg{ author };
+	$self->[ _GLOBAL_UPDATED ] = $arg{ updated } ||= strftime _W3C_DATETIME, gmtime;
 
-	$id        { 0+$self } = $arg{ id } if exists $arg{ id };
-	$title     { 0+$self } = _text_construct( $arg{ title } ) || croak 'Missing feed title';
-	$subtitle  { 0+$self } = _text_construct $arg{ subtitle } if exists $arg{ subtitle };
-	$categories{ 0+$self } = _categories( $arg{ category } );
-	$links     { 0+$self } = _links $arg{ link };
-	$author    { 0+$self } = _person_construct $arg{ author } if exists $arg{ author };
-	$rights    { 0+$self } = _text_construct $arg{ rights } if exists $arg{ rights };
-	$updated   { 0+$self } = $arg{ updated } || strftime W3C_DATETIME, gmtime;
-	$generator { 0+$self } = exists $arg{ generator } ? $arg{ generator } : {
-		uri     => 'http://search.cpan.org/dist/XML-Atom-SimpleFeed',
-		version => $VERSION,
-		name    => 'XML::Atom::SimpleFeed'
-	};
+	my $metadata = '';
 
-	if( not defined $id{ 0+$self } ) {
-		carp 'Missing entry ID, falling back to the alternate link';
-		for( @{ $links{ 0+$self } } ) {
-			next if exists $_->{ rel } and $_->rel ne 'alternative';
-			$id{ 0+$self } = $_->{ href };
-			last;
-		}
-	}
+	$metadata .= _tag id => $arg{ id };
+	$metadata .= _text_construct title => $arg{ title };
+	$metadata .= _text_construct subtitle => $arg{ subtitle } if exists $arg{ subtitle };
+	$metadata .= _plural { &_category } $arg{ category } if exists $arg{ category };
+	$metadata .= _plural { &_link } $arg{ link } if exists $arg{ link };
+	$metadata .= _person_construct author => $arg{ author } if exists $arg{ author };
+	$metadata .= _text_construct rights => $arg{ rights } if exists $arg{ rights };
+	$metadata .= _tag updated => $arg{ updated };
+	$metadata .= _generator exists $arg{ generator } ? $arg{ generator } : _DEFAULT_GENERATOR;
 
-	croak 'Missing generator name'
-		if exists $generator{ 0+$self } and not exists $generator{ 0+$self }{ name };
+	push @$self, $metadata;
 
 	bless $self, $class;
 }
@@ -636,198 +693,57 @@ sub add_entry {
 	my $self = shift;
 	my %arg = @_;
 
+	croak 'Missing entry title' if not exists $arg{ title };
+
+	croak 'Missing entry author (required in feeds without author)'
+		if not( $self->[ _HAVE_AUTHOR ] or exists $arg{ author } );
+
+	my @alt;
+	@alt = _plural { &_alternate_link } $arg{ link } if exists $arg{ link };
+
+	croak 'Too many alternate links' if @alt > 1;
+
+	if( not exists $arg{ id } ) {
+		if( @alt ) {
+			carp 'Missing entry ID, falling back to the alternate link';
+			$arg{ id } = $alt[ 0 ];
+		}
+		else {
+			croak 'Missing entry ID (and no alternate link available as fallback)';
+		}
+	}
+
 	_deprecate \%arg, copyright => 'rights';
 	_deprecate \%arg, subject => 'category';
 	_deprecate \%arg, issued => 'published';
 	_deprecate \%arg, modified => 'updated';
 	_deprecate \%arg, created => undef;
 
-	_deprecate $arg{ author }, url => 'uri' if ref $arg{ author } eq 'HASH';
+	my $entry = '';
 
-	my $entry = do { local $_ = 1; \$_ }; # get dummy reference
+	$entry .= _tag id => $arg{ id };
+	$entry .= _text_construct title => $arg{ title };
+	$entry .= _person_construct author => $arg{ author } if exists $arg{ author };
+	$entry .= _text_construct rights => $arg{ rights } if exists $arg{ rights };
+	$entry .= _plural { &_link } $arg{ link } if exists $arg{ link };
+	$entry .= _text_construct summary => $arg{ summary } if exists $arg{ summary };
+	$entry .= _content $arg{ content } if exists $arg{ content };
+	$entry .= _plural { &_category } $arg{ category } if exists $arg{ category };
+	$entry .= _tag published => $arg{ published } if exists $arg{ published };
+	$entry .= _tag updated => $arg{ updated } || $self->[ _GLOBAL_UPDATED ];
 
-	$id        { 0+$entry } = $arg{ id };
-	$title     { 0+$entry } = _text_construct( $arg{ title } ) || croak 'Missing entry title';
-	$author    { 0+$entry } = _person_construct $arg{ author } if exists $arg{ author };
-	$rights    { 0+$entry } = _text_construct $arg{ rights } if exists $arg{ rights };
-	$links     { 0+$entry } = _links $arg{ link };
-	$summary   { 0+$entry } = _text_construct $arg{ summary } if exists $arg{ summary };
-	$content   { 0+$entry } = _content_construct $arg{ content } if exists $arg{ content };
-	$categories{ 0+$entry } = _categories( $arg{ category } );
-	$published { 0+$entry } = $arg{ published } if exists $arg{ published };
-	$updated   { 0+$entry } = $arg{ updated } || $updated{ 0+$self };
-
-	if( not defined $id{ 0+$entry } ) {
-		carp 'Missing entry ID, falling back to the alternate link';
-		for( @{ $links{ 0+$entry } } ) {
-			next if exists $_->{ rel } and $_->rel ne 'alternative';
-			$id{ 0+$entry } = $_->{ href };
-			last;
-		}
-	}
-
-	croak 'Missing entry author (required in feeds without author)'
-		if not ( exists $author{ 0+$entry } or exists $author{ 0+$self } );
-
-	push @{ $entries{ 0+$self } }, $entry;
+	push @$self, _tag entry => $entry;
 }
 
-sub _start_element {
-	my ( $h, $element, $attr ) = @_;
-
-	my %element = (
-		Name      => $element,
-		LocalName => $element,
-		Prefix    => '',
-		NamespaceURI => ATOM_NS,
-	);
-
-	if( defined $attr ) {
-		$element{ Attributes } = {
-			map { sprintf( '{%s}%s', ATOM_NS, $_ ) => +{
-				Name      => $_,
-				Prefix    => '',
-				LocalName => $_,
-				Value     => $attr->{ $_ },
-			} } keys %$attr,
-		};
-	}
-
-	$h->start_element( \%element );
-
-	delete $element{ Attributes };
-
-	return \%element;
-}
-
-sub _element {
-	# $attr is optional
-	my ( $h, $element, $attr, $data ) = @_;
-	( $data, $attr ) = ( $attr, undef ) if ref $attr ne 'HASH';
-
-	my $e = _start_element( $h, $element, $attr );
-
-	$h->characters( { Data => $data } ) if defined $data;
-
-	$h->end_element( $e );
-}
-
-sub _text_construct_element {
-	my ( $h, $element, $txtconst ) = @_;
-
-	my %attr = %$txtconst;
-	my $content = delete $attr{ content }; 
-
-	my $e = _start_element( $h, $element, \%attr );
-
-	if( defined $content ) {
-		if( $attr{ type } eq 'xhtml' and ref $content eq 'CODE' ) {
-			$h->start_prefix_mapping( { Prefix => '', NamespaceURI => XHTML_NS } );
-			my %element = ( Name => 'div', LocalName => 'div', Prefix => '', NamespaceURI => XHTML_NS, );
-			$h->start_element( \%element );
-			$content->( $h );
-			$h->end_element( \%element );
-			$h->end_prefix_mapping( { Prefix => '', NamespaceURI => XHTML_NS } );
-		}
-		elsif( $attr{ type } =~ m{ [/+] xml \z }imsx and ref $content eq 'CODE' ) {
-			$content->( $h );
-		}
-		else {
-			$h->characters( { Data => $content } );
-		}
-	}
-
-	$h->end_element( $e );
-}
-
-sub _default_handler {
+sub print {
 	my $self = shift;
-	eval{ require XML::SAX::Writer } ? XML::SAX::Writer->new( @_ )
-	: eval{ require XML::Genx::SAXWriter } ? XML::Genx::SAXWriter->new( @_ )
-	: die q"Couldn't load default SAX handler";
+	print $self->as_string;
 }
 
-sub generate {
+sub as_string {
 	my $self = shift;
-
-	my ( $h ) = @_;
-
-	$h ||= $self->_default_handler();
-
-	$h->start_document();
-	$h->start_prefix_mapping( { Prefix => '', NamespaceURI => ATOM_NS } );
-	my $_feed = _start_element( $h, 'feed' );
-
-	_element( $h, id => $id{ 0+$self } );
-	_text_construct_element( $h, title => $title{ 0+$self } );
-
-	_text_construct_element( $h, subtitle => $subtitle{ 0+$self } )
-		if exists $subtitle{ 0+$self };
-
-	_element( $h, category => $_ )
-		for @{ $categories{ 0+$self } };
-
-	if( exists $author{ 0+$self } ) {
-		my $au = $author{ 0+$self };
-		my $_author = _start_element( $h, 'author' );
-		_element( $h, $_, $au->{ $_ } ) for keys %$au;
-		$h->end_element( $_author );
-	}
-
-	_text_construct_element( $h, rights => $rights{ 0+$self } )
-		if exists $rights{ 0+$self };
-
-	_element( $h, link => $_ )
-		for @{ $links{ 0+$self } };
-
-	if( exists $generator{ 0+$self } ) {
-		my %c = %{ $generator{ 0+$self } };
-		my $data = delete $c{ name };
-		_element( $h, generator => \%c, $data );
-	}
-
-	_element( $h, updated => $updated{ 0+$self } );
-
-	for my $entry ( @{ $entries{ 0+$self } } ) {
-		my $_entry = _start_element( $h, 'entry' );
-
-		_element( $h, id => $id{ 0+$entry } );
-		_text_construct_element( $h, title => $title{ 0+$entry } );
-
-		_element( $h, link => $_ )
-			for @{ $links{ 0+$entry } };
-
-		_text_construct_element( $h, summary => $summary{ 0+$entry } )
-			if exists $summary{ 0+$entry };
-		_text_construct_element( $h, content => $content{ 0+$entry } )
-			if exists $content{ 0+$entry };
-
-		_element( $h, category => $_ )
-			for @{ $categories{ 0+$entry } };
-
-		if( exists $author{ 0+$entry } ) {
-			my $au = $author{ 0+$entry };
-			my $_author = _start_element( $h, 'author' );
-			_element( $h, $_, $au->{ $_ } ) for keys %$au;
-			$h->end_element( $_author );
-		}
-
-		_text_construct_element( $h, rights => $rights{ 0+$entry } )
-			if exists $rights{ 0+$entry };
-		_element( $h, published => $published{ 0+$entry } )
-			if exists $published{ 0+$entry };
-		_element( $h, updated => $updated{ 0+$entry } );
-
-		$h->end_element( $_entry );
-	}
-
-	$h->end_element( $_feed );
-	$h->end_prefix_mapping( { Prefix => '', NamespaceURI => ATOM_NS } );
-	$h->end_document();
+	_tag [ feed => xmlns => _ATOM_NS ], @$self[ _FEED_DATA .. $#$self ];
 }
-
-# alias ->print to ->generate
-*print = *print = \&generate;
 
 sub save_file {
 	my $self = shift;
@@ -838,44 +754,7 @@ sub save_file {
 		or ( ref $file and ref $file ne 'GLOB' and not UNIVERSAL::isa( $file, 'IO::Handle' ) )
 		or not( length $file );
 
-	$self->generate( $self->_default_handler( Output => $file ) );
+	die;
 }
 
-sub as_string {
-	my $self = shift;
-	my $str;
-	$self->generate( $self->_default_handler( Output => \$str ) );
-	return $str;
-}
-
-sub DESTROY {
-	my $self = shift;
-
-	for my $entry ( @{ $entries{ 0+$self } } ) {
-		delete $id        { 0+$entry };
-		delete $title     { 0+$entry };
-		delete $author    { 0+$entry };
-		delete $rights    { 0+$entry };
-		delete $links     { 0+$entry };
-		delete $summary   { 0+$entry };
-		delete $content   { 0+$entry };
-		delete $categories{ 0+$entry };
-		delete $published { 0+$entry };
-		delete $updated   { 0+$entry };
-	}
-
-	delete $id        { 0+$self };
-	delete $title     { 0+$self };
-	delete $links     { 0+$self };
-	delete $updated   { 0+$self };
-	delete $subtitle  { 0+$self };
-	delete $rights    { 0+$self };
-	delete $author    { 0+$self };
-	delete $generator { 0+$self };
-	delete $categories{ 0+$self };
-	delete $entries   { 0+$self };
-
-	return;
-}
-
-'Funky and proud of it.';
+! ! 'Funky and proud of it.';

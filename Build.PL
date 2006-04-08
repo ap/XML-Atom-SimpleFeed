@@ -7,9 +7,6 @@ my $builder = Module::Build->new(
     license             => 'perl',
     dist_author         => 'Aristotle Pagaltzis <pagaltzis@gmx.de>',
     dist_version_from   => 'lib/XML/Atom/SimpleFeed.pm',
-    recommends => {
-        'XML::SAX::Writer' => 0,
-    },
 	build_requires => {
 		'Test::More'          => 0,
 		'Test::Pod'           => 0,

@@ -1,6 +1,7 @@
 #!perl
 use strict;
 use warnings;
+use utf8;
 
 use XML::Atom::SimpleFeed;
 
@@ -13,7 +14,8 @@ my $feed = XML::Atom::SimpleFeed->new(
 $feed->add_entry(
 	title => 'Foo',
 	link => 'http://example.com/log/foo',
-	category => 'fooisms',
+	summary => '<i>Møøse</i>',
+	category => 'Fooisms',
 );
 
 $feed->add_entry(
@@ -21,18 +23,7 @@ $feed->add_entry(
 	link => 'http://example.com/log/bar',
 	content => {
 		type => 'xhtml',
-		content => sub {
-			my ( $saxh ) = @_;
-			my $e = {
-				Name      => 'p',
-				LocalName => 'p',
-				Prefix    => '',
-				NamespaceURI => XML::Atom::SimpleFeed::XHTML_NS,
-			};
-			$saxh->start_element( $e );
-			$saxh->characters( { Data => q"I'm sorry, Dave." } );
-			$saxh->end_element( $e );
-		}
+		content => '',
 	},
 );
 

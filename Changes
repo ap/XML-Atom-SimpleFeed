@@ -1,14 +1,22 @@
 Revision history for XML-Atom-SimpleFeed
 
-0.8  Wed Sep 28 03:49:48 2005
+0.8_002  Sun Apr  9 00:52:28 2006
+		- Use builtin XML writer instead of SAX for output. This eliminates
+		  huge amounts of redundancy.
+		- Big improvements in the distribution of responsibilities for
+		  deprecation and validation checks.
+		- Array-based implementation rather than inside-out objects.
+		- Internal structure is now more logical and consistent.
+
+0.8_001  Wed Sep 28 03:49:48 2005
         - Emit Atom 1.0. Documentation updated to reflect Atom 1.0. Usage
           according to Atom 0.3 will transparently generate 1.0 elements but
           emit deprectation warnings.
         - Remove _generate_entry_id and use HTTP URLs as IDs by default. Using
           tag: URIs is useful for generating the ID once, up front, so that it
-          won't change even if the permalink does. But if the ID is generated
-          from the permalink, we might as well use the permalink itself.
-        - Use a SAX2 handler instead of XML::Simple for output.
+		  won't change even if the permalink does -- if the ID is generated
+		  from the permalink, we might as well use the permalink directly.
+        - Use XML::SAX::Writer instead of XML::Simple for output.
 
 0.7  Wed May 06 11:06:00 2005
         - Fix the module prereq in Makefile.PL to actually do the proper 
