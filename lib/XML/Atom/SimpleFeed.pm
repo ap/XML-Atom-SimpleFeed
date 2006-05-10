@@ -6,7 +6,7 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.8_003
+This document describes XML::Atom::SimpleFeed version 0.8_004
 
 FIXME That's the theory anyway. In practice, there are discrepances between
 code and docs. But that shouldn't be too catastrophic since the documentation
@@ -439,7 +439,7 @@ use strict;
 package XML::Atom::SimpleFeed;
 
 use vars qw( $VERSION );
-$VERSION = "0.8_003";
+$VERSION = "0.8_004";
 
 use Carp;
 use POSIX qw( strftime );

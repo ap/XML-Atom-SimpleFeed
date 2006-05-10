@@ -1,6 +1,12 @@
 Revision history for XML-Atom-SimpleFeed
 
-0.8_002  Sun Apr  9 00:52:28 2006
+0.8_004  2006 May 10
+		- Brownbag upload: forgot to update ./Changes in 0.8_003
+
+0.8_003  2006 May 10
+		- Minor incremental progress; various bugfixes, some refactor.
+
+0.8_002  2006 Apr 9
 		- Use builtin XML writer instead of SAX for output. This eliminates
 		  huge amounts of redundancy.
 		- Big improvements in the distribution of responsibilities for
@@ -8,7 +14,7 @@ Revision history for XML-Atom-SimpleFeed
 		- Array-based implementation rather than inside-out objects.
 		- Internal structure is now more logical and consistent.
 
-0.8_001  Wed Sep 28 03:49:48 2005
+0.8_001  2005 Sep 28
         - Emit Atom 1.0. Documentation updated to reflect Atom 1.0. Usage
           according to Atom 0.3 will transparently generate 1.0 elements but
           emit deprectation warnings.
@@ -18,18 +24,18 @@ Revision history for XML-Atom-SimpleFeed
 		  from the permalink, we might as well use the permalink directly.
         - Use XML::SAX::Writer instead of XML::Simple for output.
 
-0.7  Wed May 06 11:06:00 2005
+0.7  2005 May 06
         - Fix the module prereq in Makefile.PL to actually do the proper 
           dependency tests.  Oops.
 
-0.6  Wed Apr 27 21:55:00 2005
+0.6  2005 Apr 27
         - Use XML::Simple to generate the XML, instead of doing strings by hand.
         - Make the module more robust: it now can handle multiple titles, 
           links, etc. by passing in arrayrefs and hashrefs, while still 
           allowing for simple use with strings.
         - Many thanks to Aristotle Pagaltzis for the help.
 
-0.5  Wed Mar  9 20:59:00 2005
+0.5  2005 Mar 9
         - Add an as_string method to return the feed as a scalar.
         - Escape any <![CDATA[ or ]]> strings that appear in the content
           CDATA section.
@@ -37,20 +43,18 @@ Revision history for XML-Atom-SimpleFeed
           a scalar containing a filename.
         - These issues reported by Aristotle Pagaltzis.
 
-0.4  Tue Feb 22 12:40:00 2005
+0.4  2005 Feb 22
         - Rework the author code again to fixe more bugs that I probably should have
           caught before releasing 0.3.  Sigh.
 
-0.3  Tue Feb 22 12:20:00 2005
+0.3  2005 Feb 22
         - Fixed a bug in the entry author section where the author name was always
           showing up as "name".  CPAN RT ID# 11620
         - Fixed a similar bug in the feed-level author section.
         - Happy Birthday, Holly!
 
-0.2  Sat Feb 19 14:04:00 2005
+0.2  2005 Feb 19
         - Adjust the XML encoding to produce valid feeds.
 
-0.1  Fri Feb 18 17:23:51 2005
+0.1  2005 Feb 18
         - Initial release.
-        - original version; created by h2xs 1.23 with options
-          -X -n XML::Atom::SimpleFeed

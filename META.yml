@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: XML-Atom-SimpleFeed
-version: 0.8_003
+version: 0.8_004
 author:
   - Aristotle Pagaltzis <pagaltzis@gmx.de>
 abstract: No-fuss generation of Atom syndication feeds
