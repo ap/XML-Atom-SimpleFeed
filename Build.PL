@@ -13,7 +13,7 @@ my $builder = Module::Build->new(
 		'Test::Pod::Coverage' => 0,
 	},
     add_to_cleanup      => [ 'XML-Atom-SimpleFeed-*' ],
-	create_makefile_pl => 'traditional',
+	create_makefile_pl  => 'traditional',
 );
 
 $builder->create_build_script();

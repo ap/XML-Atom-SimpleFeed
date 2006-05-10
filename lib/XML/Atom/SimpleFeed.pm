@@ -6,7 +6,7 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.8_002
+This document describes XML::Atom::SimpleFeed version 0.8_003
 
 FIXME That's the theory anyway. In practice, there are discrepances between
 code and docs. But that shouldn't be too catastrophic since the documentation
@@ -439,19 +439,22 @@ use strict;
 package XML::Atom::SimpleFeed;
 
 use vars qw( $VERSION );
-$VERSION = "0.8_002";
+$VERSION = "0.8_003";
 
 use Carp;
 use POSIX qw( strftime );
 
 sub _ATOM_NS      () { 'http://www.w3.org/2005/Atom' }
 sub _XHTML_NS     () { 'http://www.w3.org/1999/xhtml' }
+sub _PREAMBLE     () { qq(<?xml version="1.0" encoding="us-ascii"?>\n) }
 sub _W3C_DATETIME () { '%Y-%m-%dT%H:%M:%SZ' }
 
 sub _DEFAULT_GENERATOR () {
-	uri     => 'http://search.cpan.org/dist/XML-Atom-SimpleFeed',
-	version => $VERSION,
-	name    => 'XML::Atom::SimpleFeed'
+	{
+		uri     => 'http://search.cpan.org/dist/XML-Atom-SimpleFeed',
+		version => $VERSION,
+		name    => 'XML::Atom::SimpleFeed'
+	}
 }
 
 # named @$self indices
@@ -462,9 +465,24 @@ sub _FEED_DATA      () { 2 } # this one must always be last
 ####################################################################
 # superminimal XML writer
 
-sub _pcdata {
+sub _cdata {
 	local $_ = shift;
-	s{ ( [<'"&>\x{80}-\x{10FFFF}] ) }{ '&#' . ord( $1 ) . ';' }gex;
+	s{ ( < ) | ( > ) | ( [&'"\x80-\x{10FFFF}] ) }{ $1 ? '&lt;' : $2 ? '&gt;' : '&#' . ord( $3 ) . ';' }gex;
+	return $_;
+}
+
+# actually, it's more than just #PCDATA, since this lets angle brackets pass
+sub _pcdata {
+	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
+	local $_ = shift;
+
+	while( -1 < ( my $loc = index $_, "<![CDATA[" ) ) {
+		my $end = index $_, "]]>", $loc + 9;
+		croak "Incomplete CDATA section" if $end == -1;
+		substr $_, $loc, $end - $loc + 3, _cdata substr $_, $loc + 9, $end - $loc - 9;
+	}
+
+	s{ ( [\x80-\x{10FFFF}] ) }{ '&#' . ord( $1 ) . ';' }gex;
 	return $_;
 }
 
@@ -474,7 +492,7 @@ sub _tag {
 	if( ref $name eq 'ARRAY' ) {
 		my $i = 1;
 		while( $i < @$name ) {
-			$attr .= ' ' . $name->[ $i ] . '="' . _pcdata( $name->[ $i + 1 ] ) . '"';
+			$attr .= ' ' . $name->[ $i ] . '="' . _cdata( $name->[ $i + 1 ] ) . '"';
 			$i += 2;
 		}
 		$name = shift @$name;
@@ -507,15 +525,15 @@ sub _plural(&@) {
 	$code->( ref $data eq 'ARRAY' ? @$data : $data );
 }
 
-sub _pairs(&@) {
+sub _pairs(&\%@) {
 	my ( $code, $hash ) = splice @_, 0, 2;
 	map { exists $hash->{ $_ } ? $code->() : () } @_;
 }
 
 sub _alternate_link {
 	map {
-		! ref $_ ? $_
-		#	: ref $_ eq 'HASH' and ( ! exists $_->{ rel } or $_->{ rel } eq 'alternate' ) ? $_->{ href }
+		( not ref $_ ) ? $_
+		: ( ref $_ eq 'HASH' and ( not exists $_->{ rel } or $_->{ rel } eq 'alternate' ) ) ? $_->{ href }
 		: ()
 	} @_;
 }
@@ -530,71 +548,66 @@ sub _person_construct {
 		if( ref $arg eq 'HASH' ) {
 			_deprecate $arg, url => 'uri';
 			croak 'Missing person name' if not exists $arg->{ name };
-			return _tag $name => _pairs { _tag( $_ => _pcdata $arg->{ $_ } ) } $arg => qw( name email uri );
+			_tag $name => _pairs { _tag( $_ => _cdata $arg->{ $_ } ) } %$arg => qw( name email uri );
 		}
 		else {
-			return _tag $name => _tag name => $arg;
+			_tag $name => _tag name => $arg;
 		}
 	} @_;
 }
 
+# a lof of the effort here is to omit the type attribute whenever possible
 sub _text_construct {
 	my $name = shift;
 	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
 	join '', map {
 		my $arg = $_;
 
+		my ( $type, $content );
+
 		if( ref $arg eq 'HASH' ) {
-			my $type = exists $arg->{ type } ? $arg->{ type } : 'html';
+			# FIXME doesn't support @src attribute for $name eq 'content' yet
+
+			$type = exists $arg->{ type } ? $arg->{ type } : 'html';
 
 			croak q{Missing content} unless exists $arg->{ content };
-			my $content = delete $arg->{ content };
 
 			if( $type eq 'xhtml' ) {
-				$content = _tag [ div => xmlns => _XHTML_NS ], $content;
+				$content = _pcdata $arg->{ content };
+
+				if( $content !~ /</ ) { # FIXME does this cover all cases correctly?
+					$type = 'text';
+					$content =~ s/[\n\t]+/ /g;
+				}
+				else {
+					$content = _tag [ div => xmlns => _XHTML_NS ], $content;
+				}
 			}
 			elsif( $type eq 'html' or $type eq 'text' ) {
-				$content = _pcdata $content;
+				$content = _cdata $arg->{ content };
 			}
 			else {
-				croak "Type '$type' not allowed in text construct";
-			}
+				croak "Type '$type' not allowed in text construct"
+					if $name ne 'content';
 
-			return _tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
+				$content = _pcdata $arg->{ content };
+			}
 		}
 		else {
-			return _tag [ $name => type => 'html' ], _pcdata( $arg );
+			$type = 'html';
+			$content = _cdata $arg;
 		}
+
+		if( $type eq 'html' and $content !~ /&/ ) {
+			$type = 'text';
+			$content =~ s/[\n\t]+/ /g;
+		}
+
+		_tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
 	} @_;
 }
 
-sub _content {
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-	join '', map {
-		my $arg = $_;
-
-		if( ref $arg eq 'HASH' ) {
-			my $type = exists $arg->{ type } ? $arg->{ type } : 'html';
-			
-			croak q{Missing content} unless exists $arg->{ content };
-			my $content = delete $arg->{ content };
-
-			if( $type eq 'xhtml' ) {
-				$content = _tag [ div => xmlns => _XHTML_NS ], $content;
-			}
-			elsif( $type eq 'html' or $type eq 'text' ) {
-				$content = _pcdata $content;
-			}
-			# else: no need to do anything for XML types
-
-			return _tag [ content => $type ne 'text' ? ( type => $type ) : () ], $content;
-		}
-		else {
-			return _tag [ content => type => 'html' ], _pcdata( $arg );
-		}
-	} @_;
-}
-
+# some effort here to omit the type attribute whenever possible
 sub _link {
 	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
 	join '', map {
@@ -602,10 +615,14 @@ sub _link {
 
 		if( ref $arg eq 'HASH' ) {
 			croak 'Link without href' if not exists $arg->{ href };
-			return _tag [ link => _pairs { $_ => $arg->{ $_ } } $arg => qw( href rel type title hreflang length ) ];
+			my @rel = do {
+				local $_ = $arg->{ rel };
+				defined and length and $_ ne 'alternate' ? ( rel => $_ ) : ();
+			};
+			_tag [ link => @rel, _pairs { $_ => $arg->{ $_ } } %$arg => qw( href type title hreflang length ) ];
 		}
 		else {
-			return _tag [ link => href => $arg ];
+			_tag [ link => href => $arg ];
 		}
 	} @_;
 }
@@ -617,10 +634,10 @@ sub _category {
 
 		if( ref $arg eq 'HASH' ) {
 			croak 'Category without term' if not exists $arg->{ term };
-			return _tag [ category => _pairs { $_ => $arg->{ $_ } } $arg => qw( term scheme label ) ];
+			_tag [ category => _pairs { $_ => $arg->{ $_ } } %$arg => qw( term scheme label ) ];
 		}
 		else {
-			return _tag [ category => term => $arg ];
+			_tag [ category => term => $arg ];
 		}
 	} @_;
 }
@@ -633,10 +650,10 @@ sub _generator {
 			_deprecate $arg, url => 'uri';
 			croak 'Missing generator name' if not exists $arg->{ name };
 			my $content = delete $arg->{ name };
-			return _tag [ generator => _pairs { $_ => $arg->{ $_ } } $arg => qw( uri version ) ], _pcdata( $content );
+			_tag [ generator => _pairs { $_ => $arg->{ $_ } } %$arg => qw( uri version ) ], _cdata( $content );
 		}
 		else {
-			return _tag generator => _pcdata( $arg );
+			_tag generator => _cdata( $arg );
 		}
 	} @_;
 }
@@ -682,7 +699,9 @@ sub new {
 	$metadata .= _person_construct author => $arg{ author } if exists $arg{ author };
 	$metadata .= _text_construct rights => $arg{ rights } if exists $arg{ rights };
 	$metadata .= _tag updated => $arg{ updated };
-	$metadata .= _generator exists $arg{ generator } ? $arg{ generator } : _DEFAULT_GENERATOR;
+
+	$arg{ generator } = _DEFAULT_GENERATOR if not exists $arg{ generator };
+	$metadata .= _generator $arg{ generator } if defined $arg{ generator };
 
 	push @$self, $metadata;
 
@@ -727,7 +746,7 @@ sub add_entry {
 	$entry .= _text_construct rights => $arg{ rights } if exists $arg{ rights };
 	$entry .= _plural { &_link } $arg{ link } if exists $arg{ link };
 	$entry .= _text_construct summary => $arg{ summary } if exists $arg{ summary };
-	$entry .= _content $arg{ content } if exists $arg{ content };
+	$entry .= _text_construct content => $arg{ content } if exists $arg{ content };
 	$entry .= _plural { &_category } $arg{ category } if exists $arg{ category };
 	$entry .= _tag published => $arg{ published } if exists $arg{ published };
 	$entry .= _tag updated => $arg{ updated } || $self->[ _GLOBAL_UPDATED ];
@@ -737,13 +756,17 @@ sub add_entry {
 
 sub print {
 	my $self = shift;
-	print $self->as_string;
+	local $, = local $\ = '';
+	# not using $self->as_string to avoid concatenation for a minor perf/mem gain
+	print _PREAMBLE, '<feed xmlns="', _ATOM_NS, '">', @$self[ _FEED_DATA .. $#$self ], '</feed>';
 }
 
 sub as_string {
 	my $self = shift;
-	_tag [ feed => xmlns => _ATOM_NS ], @$self[ _FEED_DATA .. $#$self ];
+	_PREAMBLE . _tag [ feed => xmlns => _ATOM_NS ], @$self[ _FEED_DATA .. $#$self ];
 }
+
+sub _is_blessed($) { UNIVERSAL::can( shift, 'can' ) } # only legitimate use of UNIVERSAL::can as function
 
 sub save_file {
 	my $self = shift;
@@ -751,7 +774,7 @@ sub save_file {
 
 	croak 'Must pass a filename or filehandle'
 		if not( defined $file )
-		or ( ref $file and ref $file ne 'GLOB' and not UNIVERSAL::isa( $file, 'IO::Handle' ) )
+		or ( ref $file and ref $file ne 'GLOB' and not ( _is_blessed( $file ) and $file->isa( 'IO::Handle' ) ) )
 		or not( length $file );
 
 	die;
