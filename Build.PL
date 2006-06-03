@@ -7,7 +7,10 @@ my $builder = Module::Build->new(
     license             => 'perl',
     dist_author         => 'Aristotle Pagaltzis <pagaltzis@gmx.de>',
     dist_version_from   => 'lib/XML/Atom/SimpleFeed.pm',
-	build_requires => {
+	requires            => {
+		'Carp::Clan' => 0
+	},
+	build_requires      => {
 		'Test::More'          => 0,
 		'Test::Pod'           => 0,
 		'Test::Pod::Coverage' => 0,

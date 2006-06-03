@@ -6,235 +6,189 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.8_004
-
-FIXME That's the theory anyway. In practice, there are discrepances between
-code and docs. But that shouldn't be too catastrophic since the documentation
-inaccuracies mostly consist of omissions.
+This document describes XML::Atom::SimpleFeed version 0.8
 
 =head1 SYNOPSIS
 
-    use XML::Atom::SimpleFeed;
-
-    # Create the feed object
-    my $atom = XML::Atom::SimpleFeed->new(
-        title     => "My Atom Feed",
-        subtitle  => "This is an example feed.  Nothing to see here.  Move along."
-        link      => "http://www.example.com/blogs/",
-        generator => 'Elite Blogs LLP',
-        updated   => "2005-02-18T15:00:00Z",
-    );
-
-    # Add an entry to the feed
-    $atom->add_entry(
-        title     => "A Sample Entry",
-        link      => "http://www.example.com/blogs/joe/entries/1234",
-        content   => "This is the body of the entry"
-        author    => { name => "J. Random Hacker", email => 'jrh@example.com' },
-        published => "2005-02-18T15:30:00Z",
-        updated   => "2005-02-18T16:45:00Z",
-    );
-
-    # Add a more complicated entry
-    $atom->add_entry(
-        title => 'A more complicated example.',
-        link  => [
-            href => 'http://www.example.com/blogs/quux/entries/1337',
-            {
-                rel  => 'via',
-                href => 'http://www.example.com/blogs/foo/entries/1',
-            }
-        ],
-        author => {
-            name  => 'Foo Bar',
-            uri   => 'http://www.example.com/blogs/foo/',
-            email => 'foo@example.com'
-        },
-        rights    => 'Copyright 2005 by Foo Bar Inc.',
-        category  => 'Technology',
-        content   => 'I have nothing to say now.'
-    );
-
-    # Print out the feed
-    $atom->print;
-
+ use XML::Atom::SimpleFeed;
+ 
+ my $feed = XML::Atom::SimpleFeed->new(
+     title   => 'Example Feed',
+     link    => 'http://example.org/',
+     link    => { rel => 'self', href => 'http://example.org/atom', },
+     updated => '2003-12-13T18:30:02Z',
+     author  => 'John Doe',
+     id      => 'urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6',
+ );
+ 
+ $feed->add_entry(
+     title     => 'Atom-Powered Robots Run Amok',
+     link      => 'http://example.org/2003/12/13/atom03',
+     id        => 'urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a',
+     summary   => 'Some text.',
+     updated   => '2003-12-13T18:30:02Z',
+     category  => 'Atom',
+     category  => 'Miscellaneous',
+ );
+ 
+ $feed->print;
 
 =head1 DESCRIPTION
 
-This module provides a minimal API for generating Atom syndication feeds
-quickly and easily. It supports all aspects of the Atom format, but it has no
-provisions for generating feeds with extension elements.
+This module provides a minimal API for generating Atom syndication feeds quickly and easily. It supports all aspects of the Atom format, but it has no provisions for generating feeds with extension elements.
 
-You can supply strings for most things, and the module will provide useful
-defaults. When you want more control, you can provide data structures, as
-documented, to specify more particulars.
+You can supply strings for most things, and the module will provide useful defaults. When you want more control, you can provide data structures, as documented, to specify more particulars.
 
 =head1 INTERFACE
 
-=head2 Constructor
+=head2 C<new>
 
-XML::Atom::SimpleFeed instances are created by the C<new> constructor:
-
-    my $atom = XML::Atom::SimpleFeed->new( %arguments );
-
-Parameters are supplied as key-value pairs, as follows:
+XML::Atom::SimpleFeed instances are created by the C<new> constructor, which takes a list of key-value pairs as parameters. The keys are used to create the corresponding L<Atom elements|/ATOM ELEMENTS>. The following elements are available:
 
 =over
 
-=item C<id> (I<omissible> URI)
+=item * C<id> (I<omissible>)
 
-A URI that is a permanent, globally unique identifier for the entry. This should B<never change>.
+=item * C<link> (I<omissible>, multiple)
 
-=item C<title> (B<required> L</Text Construct>)
+=item * C<title> (B<required>)
 
-The title of the feed.
+=item * C<author> (optional, multiple)
 
-=item C<subtitle> (optional L</Text Construct>)
+=item * C<category> (optional, multiple)
 
-An optional additional description of the feed.
+=item * C<contributor> (optional, multiple)
 
-=item C<category> (optional L</Category Construct>)
+=item * C<generator> (optional)
 
-One or more categories that apply to the entry.
+=item * C<icon> (optional)
 
-=item C<link> (I<omissible> L</Link Construct>)
+=item * C<logo> (optional)
 
-The permalink for the syndicated resource. This is generally a browser-viewable weblog, upload browser, search engine results page or similar web page.
+=item * C<rights> (optional)
 
-=item C<author> (optional L</Person Construct>)
+=item * C<subtitle> (optional)
 
-The author of the feed.
-
-=item C<rights> (optional L</Text Construct>)
-
-The legal rights for the content of the feed.
-
-=item C<generator> (optional string/hash)
-
-The software used to generate the feed. Can be supplied as a string, or a hash with C<uri>, C<version> and C<name> keys. Defaults to reporting XML::Atom::SimpleFeed as the generator, which can be suppressed by explicitly passing an C<undef> value.
-
-=item C<updated> (optional L</Date Construct>)
-
-The date and time at which the feed was last updated. If omitted, the current date and time will be used.
+=item * C<updated> (optional)
 
 =back
 
-=head2 Methods
+To specify multiple instances of an element that may be given multiple times, simply list multiple key-value pairs with the same key.
+
+=head2 C<add_entry>
+
+This method adds an entry into the Atom feed. It takes a list of key-value pairs as parameters. The keys are used to create the corresponding L<Atom elements|/ATOM ELEMENTS>. The following elements are available:
 
 =over
 
-=item C<add_entry>
+=item * C<author> (B<required> unless there is a feed-level author, multiple)
 
-This method adds an entry into the atom feed.  Its arguments are supplied as a hash, with the following keys:
+=item * C<id> (I<omissible>)
+
+=item * C<link> (B<required>, multiple)
+
+=item * C<title> (B<required>)
+
+=item * C<category> (optional, multiple)
+
+=item * C<content> (optional)
+
+=item * C<contributor> (optional, multiple)
+
+=item * C<published> (optional)
+
+=item * C<rights> (optional)
+
+=item * C<summary> (optional)
+
+=item * C<updated> (optional)
+
+=back
+
+To specify multiple instances of an element that may be given multiple times, simply list multiple key-value pairs with the same key.
+
+=head2 C<no_generator>
+
+Suppresses the output of a default C<generator> element. It is not necessary to call this method if you supply a custom C<generator> element.
+
+=head2 C<as_string>
+
+Returns the XML representation of the feed as a string.
+
+=head2 C<print>
+
+Outputs the XML representation of the feed to a handle which should be passed as a parameter. Defaults to C<STDOUT> if you do not pass a handle.
+
+=head1 ATOM ELEMENTS
 
 =over
 
-=item C<id> (I<omissible> URI)
+=item C<author> (L</Person Construct>)
 
-A URI that is a permanent, globally unique identifier for the entry. This should B<never change>.
+The author of the feed or entry.
 
-You are encouraged to generate a UUID using L<Data::UUID> for the purpose. It should be stored alongside the resource corresponding to this entry, f.ex. in a column of the article table of your weblog database. To use it as an identifier in the feed, use the C<urn:uuid:########-####-####-####-############> URI form.
+If you supply at least one author for the feed, you can omit this information from entries; the feed's author(s) will be assumed as the author(s) for those entries. If you do not supply any author for the feed, you B<must> supply one for each entry.
 
-If you do not specify an ID, the permalink will be used instead. It is your responsibility to ensure that the permalink C<never changes>.
 
-=item C<title> (B<required> L</Text Construct>)
+=item C<category>
 
-The title of the entry.
-
-=item C<link> (B<required> L</Link Construct>)
-
-The permalink for the entry. This is generally a browser-viewable article, upload details page, search result or similar web page. It I<should> be unique.
-
-=item C<summary> (optional L</Text Construct>)
-
-A short summary of the entry.
-
-=item C<content> (optional Content Construct)
-
-The actual, honest-to-goodness, body of the entry. This is a L</Text Construct>, with a couple of extras.
-
-In addition to the C<type> values of a L</Text Construct>, you can also supply any MIME type (except multipart types, which the Atom format specification forbids). If you specify a C<text/*> type, the same rules apply as for C<text>. If you pass a C<*/xml> or C<*/*+xml> type, the same rules apply as for C<xhtml> (except in that case there is no wrapper C<< <div> >> element). Any other type will be transported as Base64-encoded binary.
-
-Furthermore, you can supply a C<src> key in place of the C<content> key. In that case, the value of the C<src> key should be a URL denoting the actual location of the content.
-
-=item C<category> (optional L</Category Construct>)
-
-One or more categories that apply to the entry.
-
-=item C<author> (B<possibly required> L</Person Construct>)
-
-The author of the entry. If no author was given for the feed as a whole, this is B<required>.
-
-=item C<rights> (optional L</Text Construct>)
-
-The legal rights for the content of this entry.
-
-=item C<published> (optional L</Date Construct>)
-
-The date and time the entry was first published. This should never change.
-
-=item C<updated> (optional L</Date Construct>)
-
-The date and time the entry was last updated. You can use this to signal changes to the entry at your discretion. Defaults to the current date and time.
-
-=back
-
-=item C<as_string>
-
-Returns the text of the feed as a string.
-
-=item C<print>
-
-Outputs the feed to STDOUT.
-
-=item C<save_file( $file )>
-
-Saves the feed into C<$file>, which can be a filename or filehandle.
-
-=back
-
-=head1 ATOM CONSTRUCTS
-
-Many of the parameters accepted by the C<new> constructor and the C<add_entry> method are identified as a particular construct. These are pieces of information with a common structure. The following sections outline the data you can (or must) pass in each case.
-
-=head2 Text Construct
-
-You can supply a string to Text Construct parameters, which will be used as the HTML content of the element.
-
-FIXME text/html/xhtml
-
-=head2 Person Construct
-
-You can supply a string to Person Construct parameters, which will be used as the name of the person. The full range of details that can be provided by passing a hash instead of a string is as follows:
+One or more categories that apply to the feed or entry. You can supply a string which will be used as the category term. The full range of details that can be provided by passing a hash instead of a string is as follows:
 
 =over
 
-=item C<name> (B<required>)
+=item C<term> (B<required>)
 
-The name of the person.
+The category term.
 
-=item C<email> (optional)
+=item C<scheme> (optional)
 
-The person's email address.
+A URI that identifies a categorization scheme.
 
-=item C<uri> (optional)
+It is common to provide the base of some kind of by-category URL here. F.ex., if the weblog C<http://www.example.com/blog/> can be browsed by category using URLs such as C<http://www.example.com/blog/category/personal>, you would supply C<http://www.example.com/blog/category/> as the scheme and, in that case, C<personal> as the term.
 
-A URI to distinguish this person. This would usually be a homepage, but need not actually be a dereferencable URL.
+=item C<label> (optional)
+
+A human-readable version of the term.
 
 =back
 
-=head2 Date Construct
 
-A string denoting a date and time in W3CDTF format. You can generate those using something like
+=item C<content>
 
-    use POSIX qw( strftime );
-    my $now = strftime '%Y-%m-%dT%H:%M:%SZ', gmtime;
+The actual, honest-to-goodness, body of the entry. This is like a L</Text Construct>, with a couple of extras.
 
-=head2 Link Construct
+In addition to the C<type> values of a L</Text Construct>, you can also supply any MIME Type (except multipart types, which the Atom format specification forbids). If you specify a C<text/*> type, the same rules apply as for C<text>. If you pass a C<*/xml> or C<*/*+xml> type, the same rules apply as for C<xhtml> (except in that case there is no wrapper C<< <div> >> element). Any other type will be transported as Base64-encoded binary.
 
-You can supply a string to Link Construct parameters, which will be used as the C<href> value of the link. The full range of details that can be provided by passing a hash instead of a string is as follows:
+XXX Furthermore, you can supply a C<src> key in place of the C<content> key. In that case, the value of the C<src> key should be a URL denoting the actual location of the content. FIXME This is not currently supported. XXX
 
-FIXME mention multiplicity
+
+=item C<contributor> (L</Person Construct>)
+
+A contributor to the feed or entry.
+
+
+=item C<generator>
+
+The software used to generate the feed. Can be supplied as a string, or a hash with C<uri>, C<version> and C<name> keys. Defaults to reporting XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
+
+
+=item C<icon> (URI)
+
+The URI of a small image that should have the same height and width.
+
+
+=item C<id> (URI)
+
+A URI that is a permanent, globally unique identifier for the feed or entry that B<MUST NEVER CHANGE>.
+
+You are encouraged to generate a UUID using L<Data::UUID> for the purpose of identifying entries/feeds. It should be stored alongside the resource corresponding to the entry/feed, f.ex. in a column of the article table of your weblog database. To use it as an identifier in the entry/feed, use the C<urn:uuid:########-####-####-####-############> URI form.
+
+If you do not specify an ID, the permalink will be used instead. This is unwise, as permalinks do unfortunately occasionally change. B<It is your responsibility to ensure that the permalink NEVER CHANGES.>
+
+
+=item C<link>
+
+A link element. You can either supply a bare string as the parameter, which will be used as the permalink URI, or a hash. The permalink for a feed is generally a browser-viewable weblog, upload browser, search engine results page or similar web page; for an entry, it is generally a browser-viewable article, upload details page, search result or similar web page. This URI I<should> be unique. If you supply a hash, you can provide the following range of details in the given hash keys:
 
 =over
 
@@ -264,104 +218,81 @@ A hint about the content length in bytes of the resource pointed to by the link.
 
 =back
 
-=head2 Category Construct
 
-FIXME mention multiplicity
+=item C<logo> (URI)
 
-You can supply a string to Category Construct parameters, which will be used as the category term. The full range of details that can be provided by passing a hash instead of a string is as follows:
-
-=over
-
-=item C<term> (B<required>)
-
-The category term.
-
-=item C<scheme> (optional)
-
-A URI that identifies a categorization scheme.
-
-It is common to provide the base of some kind of by-category URL here. F.ex., if the weblog C<http://www.example.com/blog/> can be browsed by category using URLs such as C<http://www.example.com/blog/category/personal>, you would supply C<http://www.example.com/blog/category/> as the scheme and, in that case, C<personal> as the term.
-
-=item C<label> (optional)
-
-A human-readable version of the term.
-
-=back
+The URI of an image that should be twice as wide as it is high.
 
 
+=item C<published> (L</Date Construct>)
 
-=head1 DIAGNOSTICS
+The date and time the entry was first published. This should never change.
 
-=head2 Warnings
 
-=over
+=item C<rights> (L</Text Construct>)
 
-=item C<Missing entry ID, falling back to the alternate link>
+A human-readable statement of legal rights for the content of the feed or entry.
 
-You did not supply an identifier for the feed or entry. In this case, the module uses the permalink as the feed's/entry's identifier. It is your responsibility to ensure that the permalink B<NEVER CHANGES>.
 
-You are encouraged to generate a UUID using L<Data::UUID> for the purpose of identifying entries/feeds. It should be stored alongside the resource corresponding to the entry/feed, f.ex. in a column of the article table of your weblog database. To use it as an identifier in the feed, use the C<urn:uuid:########-####-####-####-############> URI form.
+=item C<subtitle> (L</Text Construct>)
 
-=item C<Outputting deprecated Atom 0.3 element '%s' as '%s' according to Atom 1.0>
+An optional additional description of the feed.
 
-This module used to generate Atom 0.3 feeds. Atom 0.3 is now deprecated, since Atom 1.0 has been standardised by the IETF, and this module now generates Atom 1.0 feeds. A number of elements from the 0.3 (non)standard have changed names in 1.0.
 
-This module's old interface, which follows Atom 0.3 conventions, will continue to be supported for some time, but you should change your code to use the 1.0 conventions.
+=item C<summary> (L</Text Construct>)
 
-=item C<Dropping deprecated Atom 0.3 element '%s' without equivalent in Atom 1.0>
+A short summary of the entry.
 
-This module used to generate Atom 0.3 feeds. Atom 0.3 is now deprecated, since Atom 1.0 has been standardised by the IETF, and this module now generates Atom 1.0. A small number of features from the 0.3 (non)standard have been removed from Atom 1.0.
 
-Since there is no way to express these concepts in Atom 1.0, this module no longer supports these old features. Please remove their use from your code.
+=item C<title> (L</Text Construct>)
+
+The title of the feed or entry.
+
+
+=item C<updated> (L</Date Construct>)
+
+The date and time at which the feed or entry was last updated. In entries, you can use this to signal changes at your discretion. Defaults to the current date and time if omitted.
 
 =back
 
 
-=head2 Errors
+
+=head1 COMMON ATOM CONSTRUCTS
+
+A number of Atom elements share a common structure. The following sections outline the data you can (or must) pass in each case.
+
+=head2 Date Construct
+
+A string denoting a date and time in W3CDTF format. You can generate those using something like
+
+ use POSIX qw( strftime );
+ my $now = strftime '%Y-%m-%dT%H:%M:%SZ', gmtime;
+
+=head2 Person Construct
+
+You can supply a string to Person Construct parameters, which will be used as the name of the person. The full range of details that can be provided by passing a hash instead of a string is as follows:
 
 =over
 
-=item C<Category without term>
+=item C<name> (B<required>)
 
-You used a hash without a C<term> key to specify a category. C<term> is a required attribute of a category in Atom.
+The name of the person.
 
-=item C<Link without href>
+=item C<email> (optional)
 
-You used a hash without a C<href> key to specify a link. C<href> is a required attribute of a link in Atom.
+The person's email address.
 
-=item C<Too many alternate links>
+=item C<uri> (optional)
 
-You used a hash or an array of hashes to define an entry's or feed's links, but more than one of them is an alternate link. (Alternate links are those whose C<rel> attribute is either unspecified or equal to C<alternate>.)
-
-=item C<Missing entry author (required in feeds without author)>
-
-If you did not specify a author for the feed, then every entry in the feed must have an author.
-
-=item C<Missing entry title>, C<Missing feed title>
-
-Titles are required for feeds and entries.
-
-=item C<Missing generator name>
-
-You used a hash without a C<name> key to specify the feed generator. Atom requires that a human-readable name be given for the generator, if the generator is specified.
-
-=item C<Missing person name>
-
-You used a hash without a C<name> key to specify a person. Atom requires a name for every author or contributor mentioned.
-
-=item C<Must pass a filename or filehandle>
-
-You passed something to C<save_file> that's neither a string nor a filehandle.
-
-=item C<No 'src' key allowed in text construct>, C<Type '%s' not allowed in text construct>
-
-You used a hash to specify a text construct, such as a title or entry summary, but specified a C<type> other than C<text>, C<html> or C<xhtml> or specified a C<src> attribute to refer to remote content. Atom only specifies this extended use only for the content of an entry.
-
-=item C<Missing content>
-
-You used a hash without a C<content> key to specify a text construct, such as a title, summary or entry content. Atom requires that such elements have content.
+A URI to distinguish this person. This would usually be a homepage, but need not actually be a dereferencable URL.
 
 =back
+
+=head2 Text Construct
+
+You can supply a string to Text Construct parameters, which will be used as the HTML content of the element.
+
+FIXME text/html/xhtml
 
 
 =head1 SEE ALSO
@@ -374,56 +305,39 @@ You used a hash without a C<content> key to specify a text construct, such as a 
 
 =item * RFC 3066 L<http://rfc.net/rfc3066.html>
 
-=item * L<XML::Atom>
+=item * L<XML::Atom::Syndication>
 
 =back
 
 
 =head1 BUGS AND LIMITATIONS
 
-The L</TODO> section is not empty.
+In C<content> elements, the C<src> attribute cannot be used, and non-XML or -text media types do not get Base64-encoded automatically.
 
-Some Atom format features might be missing.
+There are practically no tests.
 
-There is currently no support for C<xml:lang> and C<xml:base>. This should be addressed in a future version.
+Support for C<xml:lang> and C<xml:base> is completely absent. This should be partially addressed in a future version, though there are no plans to allow these attributes on arbitrary elements.
 
-Feeds with extension elements cannot be generated using this module. This is by design.
+There are no plans to ever support generating feeds with arbitrary extensions, although support for specific extensions may or may not be added in the future.
 
-The module does nothing to ensure that text constructs of type C<xhtml> and entry contents using either that or an XML media type are well-formed. This is by design.
+The C<source> element is not and may never be supported.
 
-Please report any bugs or feature requests to C<bug-xml-atom-simplefeed@rt.cpan.org>, or through the web interface at L<http://rt.cpan.org>.
+Nothing is done to ensure that text constructs with type C<xhtml> and entry contents using either that or an XML media type are well-formed. This is by design. You should strongly consider using an XML writer if you want to take use such content types.
 
+If you find bugs or you have feature requests, please report them to L<mailto:bug-xml-atom-simplefeed@rt.cpan.org>, or through the web interface at L<http://rt.cpan.org>.
 
-=head1 TODO
-
-=over
-
-=item * Handle all possible media types in C<_content>!
-
-=item * Allow more than one author, and allow for contributors
-
-=item * Reorganize "Constructs" POD section and other parts
-
-=item * Fill in the FIXME POD bits, clear up omissions
-
-=item * Add some knobs so users can twiddle which warnings are emitted
-
-=item * Write reams of unit tests
-
-=back
 
 =head1 AUTHOR
 
 Aristotle Pagaltzis, L<mailto:pagaltzis@gmx.de>
 
-Original version by H. Wade Minter.
+API designed largely by by H. Wade Minter.
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2005, Aristotle Pagaltzis. All rights reserved.
+Copyright (c) 2005-2006, Aristotle Pagaltzis. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself. See L<perlartistic>.
-
 
 =head1 DISCLAIMER OF WARRANTY
 
@@ -439,9 +353,9 @@ use strict;
 package XML::Atom::SimpleFeed;
 
 use vars qw( $VERSION );
-$VERSION = "0.8_004";
+$VERSION = "0.8";
 
-use Carp;
+use Carp::Clan;
 use POSIX qw( strftime );
 
 sub _ATOM_NS      () { 'http://www.w3.org/2005/Atom' }
@@ -458,12 +372,14 @@ sub _DEFAULT_GENERATOR () {
 }
 
 # named @$self indices
-sub _HAVE_AUTHOR    () { 0 }
-sub _GLOBAL_UPDATED () { 1 }
-sub _FEED_DATA      () { 2 } # this one must always be last
+sub _HAVE_DEFAULT_AUTHOR () { 0 }
+sub _GLOBAL_UPDATED      () { 1 }
+sub _DO_ADD_GENERATOR    () { 2 }
+sub _FEED_DATA           () { 3 } # this one must always be last
 
 ####################################################################
 # superminimal XML writer
+# 
 
 sub _cdata {
 	local $_ = shift;
@@ -471,9 +387,8 @@ sub _cdata {
 	return $_;
 }
 
-# actually, it's more than just #PCDATA, since this lets angle brackets pass
+# actually, it permits more than just #PCDATA, since it lets angle brackets pass
 sub _pcdata {
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
 	local $_ = shift;
 
 	while( -1 < ( my $loc = index $_, "<![CDATA[" ) ) {
@@ -501,283 +416,288 @@ sub _tag {
 }
 
 ####################################################################
+# misc utility functions
+#
 
-sub _deprecate {
-	my ( $arg, $old, $new ) = @_;
+sub _is_blessed($) { UNIVERSAL::can( $_[0], 'can' ) } # only legitimate use of UNIVERSAL::can as function!!
 
-	return if not exists $arg->{ $old };
+sub _natural_enum {
+	my @and;
+	unshift @and, pop @_ if @_;
+	unshift @and, join ', ', @_ if @_;
+	join ' and ', @and;
+}
 
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-
-	my $old_val = delete $arg->{ $old };
-
-	if( defined $new and length $new ) {
-		$arg->{ $new } = $old_val if not exists $arg->{ $new };
-		carp "Outputting deprecated Atom 0.3 element '$old' as '$new' according to Atom 1.0";
+sub _permalink {
+	my ( $link_arg ) = ( @_ );
+	if( ref $link_arg ne 'HASH' ) {
+		return $link_arg;
 	}
-	else {
-		carp "Dropping deprecated Atom 0.3 element '$old' without equivalent in Atom 1.0";
+	elsif( not exists $link_arg->{ rel } or $link_arg->{ rel } eq 'alternate' ) {
+		return $link_arg->{ href };
 	}
-}
-
-sub _plural(&@) {
-	my ( $code, $data ) = @_;
-	$code->( ref $data eq 'ARRAY' ? @$data : $data );
-}
-
-sub _pairs(&\%@) {
-	my ( $code, $hash ) = splice @_, 0, 2;
-	map { exists $hash->{ $_ } ? $code->() : () } @_;
-}
-
-sub _alternate_link {
-	map {
-		( not ref $_ ) ? $_
-		: ( ref $_ eq 'HASH' and ( not exists $_->{ rel } or $_->{ rel } eq 'alternate' ) ) ? $_->{ href }
-		: ()
-	} @_;
+	return;
 }
 
 ####################################################################
+# actual implementation of RFC 4287
+#
 
 sub _person_construct {
-	my $name = shift;
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-	join '', map {
-		my $arg = $_;
-		if( ref $arg eq 'HASH' ) {
-			_deprecate $arg, url => 'uri';
-			croak 'Missing person name' if not exists $arg->{ name };
-			_tag $name => _pairs { _tag( $_ => _cdata $arg->{ $_ } ) } %$arg => qw( name email uri );
-		}
-		else {
-			_tag $name => _tag name => $arg;
-		}
-	} @_;
+	my ( $name, $arg ) = @_;
+
+	my @content = ref $arg eq 'HASH' ? do {
+		croak "name required for $name element" if not exists $arg->{ name };
+		map _tag( $_ => _cdata $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( name email uri );
+	} : do {
+		_tag name => $arg;
+	};
+
+	return _tag $name => @content;
 }
 
-# a lof of the effort here is to omit the type attribute whenever possible
 sub _text_construct {
-	my $name = shift;
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-	join '', map {
-		my $arg = $_;
+	my ( $name, $arg ) = @_;
 
-		my ( $type, $content );
+	my ( $type, $content );
 
-		if( ref $arg eq 'HASH' ) {
-			# FIXME doesn't support @src attribute for $name eq 'content' yet
+	if( ref $arg eq 'HASH' ) {
+		# FIXME doesn't support @src attribute for $name eq 'content' yet
 
-			$type = exists $arg->{ type } ? $arg->{ type } : 'html';
+		$type = exists $arg->{ type } ? $arg->{ type } : 'html';
 
-			croak q{Missing content} unless exists $arg->{ content };
+		croak "content required for $name element" unless exists $arg->{ content };
 
-			if( $type eq 'xhtml' ) {
-				$content = _pcdata $arg->{ content };
+		# a lof of the effort that follows is to omit the type attribute whenever possible
+		# 
+		if( $type eq 'xhtml' ) {
+			$content = _pcdata $arg->{ content };
 
-				if( $content !~ /</ ) { # FIXME does this cover all cases correctly?
-					$type = 'text';
-					$content =~ s/[\n\t]+/ /g;
-				}
-				else {
-					$content = _tag [ div => xmlns => _XHTML_NS ], $content;
-				}
-			}
-			elsif( $type eq 'html' or $type eq 'text' ) {
-				$content = _cdata $arg->{ content };
+			if( $content !~ /</ ) { # FIXME does this cover all cases correctly?
+				$type = 'text';
+				$content =~ s/[\n\t]+/ /g;
 			}
 			else {
-				croak "Type '$type' not allowed in text construct"
-					if $name ne 'content';
-
-				$content = _pcdata $arg->{ content };
+				$content = _tag [ div => xmlns => _XHTML_NS ], $content;
 			}
 		}
-		else {
-			$type = 'html';
-			$content = _cdata $arg;
-		}
-
-		if( $type eq 'html' and $content !~ /&/ ) {
-			$type = 'text';
-			$content =~ s/[\n\t]+/ /g;
-		}
-
-		_tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
-	} @_;
-}
-
-# some effort here to omit the type attribute whenever possible
-sub _link {
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-	join '', map {
-		my $arg = $_;
-
-		if( ref $arg eq 'HASH' ) {
-			croak 'Link without href' if not exists $arg->{ href };
-			my @rel = do {
-				local $_ = $arg->{ rel };
-				defined and length and $_ ne 'alternate' ? ( rel => $_ ) : ();
-			};
-			_tag [ link => @rel, _pairs { $_ => $arg->{ $_ } } %$arg => qw( href type title hreflang length ) ];
+		elsif( $type eq 'html' or $type eq 'text' ) {
+			$content = _cdata $arg->{ content };
 		}
 		else {
-			_tag [ link => href => $arg ];
+			croak "type '$type' not allowed in $name element"
+				if $name ne 'content';
+
+			# FIXME non-XML/text media types must be base64 encoded!
+			$content = _pcdata $arg->{ content };
 		}
-	} @_;
+	}
+	else {
+		$type = 'html';
+		$content = _cdata $arg;
+	}
+
+	if( $type eq 'html' and $content !~ /&/ ) {
+		$type = 'text';
+		$content =~ s/[\n\t]+/ /g;
+	}
+
+	return _tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
 }
 
-sub _category {
-	local $Carp::CarpLevel = $Carp::CarpLevel + 1;
-	join '', map {
-		my $arg = $_;
+sub _empty_tag_maker {
+	my ( $required_attr, @optional_attr ) = @_;
+
+	sub {
+		my ( $name, $arg ) = @_;
+
+		HACK: {
+			# omit atom:link/@rel value when possible
+			# no other simple tag needs such a feature so it's easiest to hack it in here
+			# instead of providing an indirection to implement it
+			delete $arg->{ rel }
+				if $name eq 'link'
+				and ref $arg eq 'HASH'
+				and exists $arg->{ rel }
+				and $arg->{ rel } eq 'alternate';
+		}
 
 		if( ref $arg eq 'HASH' ) {
-			croak 'Category without term' if not exists $arg->{ term };
-			_tag [ category => _pairs { $_ => $arg->{ $_ } } %$arg => qw( term scheme label ) ];
+			croak "$required_attr required for $name element" if not exists $arg->{ $required_attr };
+			my @attr = map { $_ => $arg->{ $_ } } grep exists $arg->{ $_ }, $required_attr, @optional_attr;
+			_tag [ $name => @attr ];
 		}
 		else {
-			_tag [ category => term => $arg ];
+			_tag [ $name => $required_attr => $arg ];
 		}
-	} @_;
+	}
 }
 
-sub _generator {
-	join '', map {
-		my $arg = $_;
-
+# tag makers are called with the name of the tag they're supposed to handle as the first parameter
+my %make_tag = (
+	icon        => \&_tag,
+	id          => \&_tag,
+	logo        => \&_tag,
+	published   => \&_tag,
+	updated     => \&_tag,
+	author      => \&_person_construct,
+	contributor => \&_person_construct,
+	title       => \&_text_construct,
+	subtitle    => \&_text_construct,
+	rights      => \&_text_construct,
+	summary     => \&_text_construct,
+	content     => \&_text_construct,
+	link        => _empty_tag_maker( qw( href rel type title hreflang length ) ),
+	category    => _empty_tag_maker( qw( term scheme label ) ),
+	generator => sub {
+		my ( $name, $arg ) = @_;
 		if( ref $arg eq 'HASH' ) {
-			_deprecate $arg, url => 'uri';
-			croak 'Missing generator name' if not exists $arg->{ name };
+			croak 'name required for generator element' if not exists $arg->{ name };
 			my $content = delete $arg->{ name };
-			_tag [ generator => _pairs { $_ => $arg->{ $_ } } %$arg => qw( uri version ) ], _cdata( $content );
+			_tag [ generator => map +( $_ => $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( uri version ) ], _cdata( $content );
 		}
 		else {
 			_tag generator => _cdata( $arg );
 		}
-	} @_;
-}
+	},
+);
 
-sub new {
-	my $class = shift;
-	my %arg = @_;
+sub _container_content {
+	my ( $name, %arg ) = @_;
 
-	croak 'Missing feed title' if not exists $arg{ title };
+	my ( $elements, $required, $optional, $singular, $deprecation, $callback ) =
+		@arg{ qw( elements required optional singular deprecate callback ) };
 
-	my @alt;
-	@alt = _plural { &_alternate_link } $arg{ link } if exists $arg{ link };
+	my ( $content, %permission, %count, $permalink );
 
-	croak 'Too many alternate links' if @alt > 1;
+	undef @permission{ @$required, @$optional }; # populate
 
-	if( not exists $arg{ id } ) {
-		if( @alt ) {
-			carp 'Missing feed ID, falling back to the alternate link';
-			$arg{ id } = $alt[ 0 ];
+	while( my ( $elem, $arg ) = splice @$elements, 0, 2 ) {
+		if( exists $permission{ $elem } ) {
+			$content .= $make_tag{ $elem }->( $elem, $arg );
+			++$count{ $elem };
 		}
 		else {
-			croak 'Missing feed ID (and no alternate link available as fallback)';
+			croak "Unknown element $elem";
+		}
+
+		if( $elem eq 'link' and defined ( my $alt = _permalink $arg ) ) {
+			$permalink = $alt unless $count{ 'alternate link' }++;
+		}
+
+		if( exists $callback->{ $elem } ) { $callback->{ $elem }->( $arg ) }
+
+		if( not @$elements ) { # end of input?
+			# we would normally fall off the bottom of the loop now;
+			# before that happens, it's time to defaultify stuff and
+			# put it in the input so we will keep going for a little longer
+			if( not $count{ id } and defined $permalink ) {
+				carp 'Falling back to alternate link as id';
+				push @$elements, id => $permalink;
+			}
+			if( not $count{ updated } ) {
+				push @$elements, updated => $arg{ default_upd };
+			}
 		}
 	}
 
-	_deprecate \%arg, tagline => 'subtitle';
-	_deprecate \%arg, copyright => 'rights';
-	_deprecate \%arg, modified => 'updated';
-	_deprecate \%arg, info => undef;
+	my @error;
 
-	my $self = [];
+	my @missing = grep { not exists $count{ $_ } } @$required;
+	my @toomany = grep { ( $count{ $_ } || 0 ) > 1 } 'alternate link', @$singular;
 
-	$self->[ _HAVE_AUTHOR ] = exists $arg{ author };
-	$self->[ _GLOBAL_UPDATED ] = $arg{ updated } ||= strftime _W3C_DATETIME, gmtime;
+	push @error, 'requires at least one ' . _natural_enum( @missing ) . ' element' if @missing;
+	push @error, 'must have no more than one ' . _natural_enum( @toomany ) . ' element' if @toomany;
 
-	my $metadata = '';
+	croak $name, ' ', join ' and ', @error if @error;
 
-	$metadata .= _tag id => $arg{ id };
-	$metadata .= _text_construct title => $arg{ title };
-	$metadata .= _text_construct subtitle => $arg{ subtitle } if exists $arg{ subtitle };
-	$metadata .= _plural { &_category } $arg{ category } if exists $arg{ category };
-	$metadata .= _plural { &_link } $arg{ link } if exists $arg{ link };
-	$metadata .= _person_construct author => $arg{ author } if exists $arg{ author };
-	$metadata .= _text_construct rights => $arg{ rights } if exists $arg{ rights };
-	$metadata .= _tag updated => $arg{ updated };
+	return $content;
+}
 
-	$arg{ generator } = _DEFAULT_GENERATOR if not exists $arg{ generator };
-	$metadata .= _generator $arg{ generator } if defined $arg{ generator };
+####################################################################
+# implementation of published interface and rest of RFC 4287
+#
 
-	push @$self, $metadata;
+sub new {
+	my $self = bless [], shift;
 
-	bless $self, $class;
+	$self->[ _DO_ADD_GENERATOR ] = 1;
+
+	$self->[ _FEED_DATA ] = _container_content feed => (
+		elements    => \@_,
+		required    => [ qw( id title updated ) ],
+		optional    => [ qw( author category contributor generator icon logo link rights subtitle ) ],
+		singular    => [ qw( generator icon logo id rights subtitle title updated ) ],
+		callback    => {
+			author    => sub { $self->[ _HAVE_DEFAULT_AUTHOR ] = 1 },
+			updated   => sub { $self->[ _GLOBAL_UPDATED ] = $_[ 0 ] },
+			generator => sub { $self->[ _DO_ADD_GENERATOR ] = 0 },
+		},
+		default_upd => strftime( _W3C_DATETIME, gmtime ),
+	);
+
+	return $self;
 }
 
 sub add_entry {
 	my $self = shift;
-	my %arg = @_;
 
-	croak 'Missing entry title' if not exists $arg{ title };
+	my @required = qw( id title updated );
+	my @optional = qw( category content contributor link published rights summary );
 
-	croak 'Missing entry author (required in feeds without author)'
-		if not( $self->[ _HAVE_AUTHOR ] or exists $arg{ author } );
+	push @{ $self->[ _HAVE_DEFAULT_AUTHOR ] ? \@optional : \@required }, 'author';
 
-	my @alt;
-	@alt = _plural { &_alternate_link } $arg{ link } if exists $arg{ link };
+	# FIXME
+	# 
+	# o  atom:entry elements that contain no child atom:content element
+	#    MUST contain at least one atom:link element with a rel attribute
+	#    value of "alternate".
+	# 
+	# o  atom:entry elements MUST contain an atom:summary element in either
+	#    of the following cases:
+	#    *  the atom:entry contains an atom:content that has a "src"
+    #       attribute (and is thus empty).
+    #    *  the atom:entry contains content that is encoded in Base64;
+    #       i.e., the "type" attribute of atom:content is a MIME media type
+    #       [MIMEREG], but is not an XML media type [RFC3023], does not
+    #       begin with "text/", and does not end with "/xml" or "+xml".
+	# 
+	# XXX these can be implemented by playing games with the req/opt arrays
+	#     from within callbacks
 
-	croak 'Too many alternate links' if @alt > 1;
+	push @$self, _tag entry => _container_content entry => (
+		elements    => \@_,
+		required    => \@required,
+		optional    => \@optional,
+		singular    => [ qw( content id published rights summary ) ],
+		default_upd => $self->[ _GLOBAL_UPDATED ],
+	);
 
-	if( not exists $arg{ id } ) {
-		if( @alt ) {
-			carp 'Missing entry ID, falling back to the alternate link';
-			$arg{ id } = $alt[ 0 ];
-		}
-		else {
-			croak 'Missing entry ID (and no alternate link available as fallback)';
-		}
-	}
-
-	_deprecate \%arg, copyright => 'rights';
-	_deprecate \%arg, subject => 'category';
-	_deprecate \%arg, issued => 'published';
-	_deprecate \%arg, modified => 'updated';
-	_deprecate \%arg, created => undef;
-
-	my $entry = '';
-
-	$entry .= _tag id => $arg{ id };
-	$entry .= _text_construct title => $arg{ title };
-	$entry .= _person_construct author => $arg{ author } if exists $arg{ author };
-	$entry .= _text_construct rights => $arg{ rights } if exists $arg{ rights };
-	$entry .= _plural { &_link } $arg{ link } if exists $arg{ link };
-	$entry .= _text_construct summary => $arg{ summary } if exists $arg{ summary };
-	$entry .= _text_construct content => $arg{ content } if exists $arg{ content };
-	$entry .= _plural { &_category } $arg{ category } if exists $arg{ category };
-	$entry .= _tag published => $arg{ published } if exists $arg{ published };
-	$entry .= _tag updated => $arg{ updated } || $self->[ _GLOBAL_UPDATED ];
-
-	push @$self, _tag entry => $entry;
+	return $self;
 }
 
-sub print {
+sub no_generator {
 	my $self = shift;
-	local $, = local $\ = '';
-	# not using $self->as_string to avoid concatenation for a minor perf/mem gain
-	print _PREAMBLE, '<feed xmlns="', _ATOM_NS, '">', @$self[ _FEED_DATA .. $#$self ], '</feed>';
+	$self->[ _DO_ADD_GENERATOR ] = 0;
+	return $self;
 }
 
 sub as_string {
 	my $self = shift;
-	_PREAMBLE . _tag [ feed => xmlns => _ATOM_NS ], @$self[ _FEED_DATA .. $#$self ];
+	my $metadata = $self->[ _FEED_DATA ];
+	if( $self->[ _DO_ADD_GENERATOR ] ) {
+		$metadata .= $make_tag{ generator }->( generator => _DEFAULT_GENERATOR );
+	}
+	_PREAMBLE . _tag [ feed => xmlns => _ATOM_NS ], $metadata, @$self[ _FEED_DATA + 1 .. $#$self ];
 }
 
-sub _is_blessed($) { UNIVERSAL::can( shift, 'can' ) } # only legitimate use of UNIVERSAL::can as function
-
-sub save_file {
+sub print {
 	my $self = shift;
-	my ( $file ) = @_;
-
-	croak 'Must pass a filename or filehandle'
-		if not( defined $file )
-		or ( ref $file and ref $file ne 'GLOB' and not ( _is_blessed( $file ) and $file->isa( 'IO::Handle' ) ) )
-		or not( length $file );
-
-	die;
+	my ( $handle ) = @_;
+	local $, = local $\ = '';
+	defined $handle ? print $handle $self->as_string : print $self->as_string;
 }
+
+sub save_file { croak q{no longer supported, use 'print' with a passed in filehandle instead} }
 
 ! ! 'Funky and proud of it.';

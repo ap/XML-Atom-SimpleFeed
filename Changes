@@ -1,60 +1,89 @@
 Revision history for XML-Atom-SimpleFeed
 
+0.8  2006 Jun 3
+	- Multiple consecutive internal refactors; code structure is now
+	  actually satisfactory
+	- Handles multiple authors and contributors
+	- Support for icon and logo elements
+	- Big POD cleanup
+	- Use Carp::Clean to get rid of silly $Carp::CarpLevel juggling
+	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
+	  Elements such as C<link> which may appear multiple times are no
+	  longer specified in an anonymous array, but simply given
+	  repeatedly.
+	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
+	  Atom 0.3 element and attribute names are no longer supported. (No
+	  point keeping a lot of deprecation code around in the face of a
+	  change like the above.)
+	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
+	  Suppress the default C<generator> element requires calling the
+	  C<no_generator> method instead of passing a C<generator> key to
+	  C<new> with an undefined value.
+	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
+	  Well, since I'm at it, the C<save_file> method is no longer
+	  supported. C<print> now takes a handle, though.
+	- Cleaned up errors and warning messages and got rid of DIAGNOSTICS
+	  section in POD
+
 0.8_004  2006 May 10
-		- Brownbag upload: forgot to update ./Changes in 0.8_003
+	- Brownbag upload: forgot to update ./Changes in 0.8_003
 
 0.8_003  2006 May 10
-		- Minor incremental progress; various bugfixes, some refactor.
+	- Minor incremental progress; various bugfixes, some refactor.
 
 0.8_002  2006 Apr 9
-		- Use builtin XML writer instead of SAX for output. This eliminates
-		  huge amounts of redundancy.
-		- Big improvements in the distribution of responsibilities for
-		  deprecation and validation checks.
-		- Array-based implementation rather than inside-out objects.
-		- Internal structure is now more logical and consistent.
+	- Use builtin XML writer instead of SAX for output. This
+	  eliminates huge amounts of redundancy.
+	- Big improvements in the distribution of responsibilities for
+	  deprecation and validation checks.
+	- Array-based implementation rather than inside-out objects.
+	- Internal structure is now more logical and consistent.
 
 0.8_001  2005 Sep 28
-        - Emit Atom 1.0. Documentation updated to reflect Atom 1.0. Usage
-          according to Atom 0.3 will transparently generate 1.0 elements but
-          emit deprectation warnings.
-        - Remove _generate_entry_id and use HTTP URLs as IDs by default. Using
-          tag: URIs is useful for generating the ID once, up front, so that it
-		  won't change even if the permalink does -- if the ID is generated
-		  from the permalink, we might as well use the permalink directly.
-        - Use XML::SAX::Writer instead of XML::Simple for output.
+	- Emit Atom 1.0. Documentation updated to reflect Atom 1.0.
+	  Usage according to Atom 0.3 will transparently generate 1.0
+	  elements but emit deprectation warnings.
+	- Remove _generate_entry_id and use HTTP URLs as IDs by default.
+	  Using tag: URIs is useful for generating the ID once, up
+	  front, so that it won't change even if the permalink does --
+	  if the ID is generated from the permalink, we might as well
+	  use the permalink directly.
+	- Use XML::SAX::Writer instead of XML::Simple for output.
 
 0.7  2005 May 06
-        - Fix the module prereq in Makefile.PL to actually do the proper 
-          dependency tests.  Oops.
+	- Fix the module prereq in Makefile.PL to actually do the proper
+	  dependency tests.  Oops.
 
 0.6  2005 Apr 27
-        - Use XML::Simple to generate the XML, instead of doing strings by hand.
-        - Make the module more robust: it now can handle multiple titles, 
-          links, etc. by passing in arrayrefs and hashrefs, while still 
-          allowing for simple use with strings.
-        - Many thanks to Aristotle Pagaltzis for the help.
+	- Use XML::Simple to generate the XML, instead of doing strings
+	  by hand.
+	- Make the module more robust: it now can handle multiple
+	  titles, links, etc. by passing in arrayrefs and hashrefs,
+	  while still allowing for simple use with strings.
+	- Many thanks to Aristotle Pagaltzis for the help.
 
 0.5  2005 Mar 9
-        - Add an as_string method to return the feed as a scalar.
-        - Escape any <![CDATA[ or ]]> strings that appear in the content
-          CDATA section.
-        - Allow the save_file method to take either an open filehandle or 
-          a scalar containing a filename.
-        - These issues reported by Aristotle Pagaltzis.
+	- Add an as_string method to return the feed as a scalar.
+	- Escape any <![CDATA[ or ]]> strings that appear in the content
+	  CDATA section.
+	- Allow the save_file method to take either an open filehandle
+	  or a scalar containing a filename.
+	- These issues reported by Aristotle Pagaltzis.
 
 0.4  2005 Feb 22
-        - Rework the author code again to fixe more bugs that I probably should have
-          caught before releasing 0.3.  Sigh.
+	- Rework the author code again to fixe more bugs that I probably
+	  should have caught before releasing 0.3.  Sigh.
 
 0.3  2005 Feb 22
-        - Fixed a bug in the entry author section where the author name was always
-          showing up as "name".  CPAN RT ID# 11620
-        - Fixed a similar bug in the feed-level author section.
-        - Happy Birthday, Holly!
+	- Fixed a bug in the entry author section where the author name
+	  was always showing up as "name". CPAN RT ID# 11620
+	- Fixed a similar bug in the feed-level author section.
+	- Happy Birthday, Holly!
 
 0.2  2005 Feb 19
-        - Adjust the XML encoding to produce valid feeds.
+	- Adjust the XML encoding to produce valid feeds.
 
 0.1  2005 Feb 18
-        - Initial release.
+	- Initial release.
+
+# vi:tw=72
