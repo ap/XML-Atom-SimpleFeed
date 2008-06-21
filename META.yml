@@ -1,8 +1,21 @@
---- #YAML:1.0
+---
 name: XML-Atom-SimpleFeed
-version: 0.8
+version: 0.81
 author:
-  - Aristotle Pagaltzis <pagaltzis@gmx.de>
+  - 'Aristotle Pagaltzis <pagaltzis@gmx.de>'
 abstract: No-fuss generation of Atom syndication feeds
 license: perl
-generated_by: Module::Build version 0.2612, without YAML.pm
+resources:
+  license: http://dev.perl.org/licenses/
+requires:
+  perl: 5.8.1
+build_requires:
+  Test::More: 0
+provides:
+  XML::Atom::SimpleFeed:
+    file: lib/XML/Atom/SimpleFeed.pm
+    version: 0.81
+generated_by: Module::Build version 0.2808
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

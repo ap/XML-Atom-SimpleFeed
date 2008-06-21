@@ -1,89 +1,216 @@
-Revision history for XML-Atom-SimpleFeed
+=head1 Revision history for XML-Atom-SimpleFeed
 
-0.8  2006 Jun 3
-	- Multiple consecutive internal refactors; code structure is now
-	  actually satisfactory
-	- Handles multiple authors and contributors
-	- Support for icon and logo elements
-	- Big POD cleanup
-	- Use Carp::Clean to get rid of silly $Carp::CarpLevel juggling
-	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
-	  Elements such as C<link> which may appear multiple times are no
-	  longer specified in an anonymous array, but simply given
-	  repeatedly.
-	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
-	  Atom 0.3 element and attribute names are no longer supported. (No
-	  point keeping a lot of deprecation code around in the face of a
-	  change like the above.)
-	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
-	  Suppress the default C<generator> element requires calling the
-	  C<no_generator> method instead of passing a C<generator> key to
-	  C<new> with an undefined value.
-	- ***BACKWARDS INCOMPATIBLE API CHANGE***:
-	  Well, since I'm at it, the C<save_file> method is no longer
-	  supported. C<print> now takes a handle, though.
-	- Cleaned up errors and warning messages and got rid of DIAGNOSTICS
-	  section in POD
 
-0.8_004  2006 May 10
-	- Brownbag upload: forgot to update ./Changes in 0.8_003
 
-0.8_003  2006 May 10
-	- Minor incremental progress; various bugfixes, some refactor.
+=head2 0.81 (2008-06-03)
 
-0.8_002  2006 Apr 9
-	- Use builtin XML writer instead of SAX for output. This
-	  eliminates huge amounts of redundancy.
-	- Big improvements in the distribution of responsibilities for
-	  deprecation and validation checks.
-	- Array-based implementation rather than inside-out objects.
-	- Internal structure is now more logical and consistent.
+=over 4
 
-0.8_001  2005 Sep 28
-	- Emit Atom 1.0. Documentation updated to reflect Atom 1.0.
-	  Usage according to Atom 0.3 will transparently generate 1.0
-	  elements but emit deprectation warnings.
-	- Remove _generate_entry_id and use HTTP URLs as IDs by default.
-	  Using tag: URIs is useful for generating the ID once, up
-	  front, so that it won't change even if the permalink does --
-	  if the ID is generated from the permalink, we might as well
-	  use the permalink directly.
-	- Use XML::SAX::Writer instead of XML::Simple for output.
+=item * Put private functions in XML::Atom::SimpleFeed::YeWhoEnters and
+placed methods in XML::Atom::SimpleFeed explicitly. This gets rid of
+approximately 734 prefix underscores.
 
-0.7  2005 May 06
-	- Fix the module prereq in Makefile.PL to actually do the proper
-	  dependency tests.  Oops.
+=item * It turns out L<Carp::Clan> wasn't even necessary, Carp works
+that way by default. *blush*
 
-0.6  2005 Apr 27
-	- Use XML::Simple to generate the XML, instead of doing strings
-	  by hand.
-	- Make the module more robust: it now can handle multiple
-	  titles, links, etc. by passing in arrayrefs and hashrefs,
-	  while still allowing for simple use with strings.
-	- Many thanks to Aristotle Pagaltzis for the help.
+=item * More big POD cleanups (converted lots of list items to
+subheadings so they're linkable and listed in the TOC).
 
-0.5  2005 Mar 9
-	- Add an as_string method to return the feed as a scalar.
-	- Escape any <![CDATA[ or ]]> strings that appear in the content
-	  CDATA section.
-	- Allow the save_file method to take either an open filehandle
-	  or a scalar containing a filename.
-	- These issues reported by Aristotle Pagaltzis.
+=item * Throw out the pointless POD and POD coverage tests.
 
-0.4  2005 Feb 22
-	- Rework the author code again to fixe more bugs that I probably
-	  should have caught before releasing 0.3.  Sigh.
+=item * Automatically escape the content of the C<icon>, C<id>, C<logo>,
+C<published>, and C<updated> elements. Oops. (CPAN RT #36961)
 
-0.3  2005 Feb 22
-	- Fixed a bug in the entry author section where the author name
-	  was always showing up as "name". CPAN RT ID# 11620
-	- Fixed a similar bug in the feed-level author section.
-	- Happy Birthday, Holly!
+=back
 
-0.2  2005 Feb 19
-	- Adjust the XML encoding to produce valid feeds.
 
-0.1  2005 Feb 18
-	- Initial release.
 
-# vi:tw=72
+=head2 0.8 (2006-06-03)
+
+=over 4
+
+=item * Multiple consecutive internal refactors; code structure is now
+actually satisfactory
+
+=item * Handles multiple authors and contributors
+
+=item * Support for icon and logo elements
+
+=item * Big POD cleanup
+
+=item * Use Carp::Clan to get rid of silly $Carp::CarpLevel juggling
+
+=item * B<BACKWARDS INCOMPATIBLE API CHANGE>: Elements such as C<link>
+which may appear multiple times are no longer specified in an anonymous
+array, but simply given repeatedly.
+
+=item * B<BACKWARDS INCOMPATIBLE API CHANGE>: Atom 0.3 element and
+attribute names are no longer supported. (No point keeping a lot of
+deprecation code around in the face of a change like the above.)
+
+=item * B<BACKWARDS INCOMPATIBLE API CHANGE>: Suppressing the default
+C<generator> element requires calling the C<no_generator> method instead
+of passing a C<generator> key to C<new> with an undefined value.
+
+=item * B<BACKWARDS INCOMPATIBLE API CHANGE>: Well, since I'm at it, the
+C<save_file> method is no longer supported. C<print> now takes a handle,
+though.
+
+=item * Cleaned up errors and warning messages and got rid of
+DIAGNOSTICS section in POD
+
+=back
+
+
+
+=head2 0.8_004 (2006-05-10)
+
+=over 4
+
+=item * Brownbag upload: forgot to update F<Changes> in 0.8_003
+
+=back
+
+
+
+=head2 0.8_003 (2006-05-10)
+
+=over 4
+
+=item * Minor incremental progress; various bugfixes, some refactor.
+
+=back
+
+
+
+=head2 0.8_002 (2006-04-09)
+
+=over 4
+
+=item * Use builtin XML writer instead of SAX for output. This
+eliminates huge amounts of redundancy.
+
+=item * Big improvements in the distribution of responsibilities for
+deprecation and validation checks.
+
+=item * Array-based implementation rather than inside-out objects.
+
+=item * Internal structure is now more logical and consistent.
+
+=back
+
+
+
+=head2 0.8_001 (2005-09-28)
+
+=over 4
+
+=item * Emit Atom 1.0. Documentation updated to reflect Atom 1.0. Usage
+according to Atom 0.3 will transparently generate 1.0 elements but emit
+deprectation warnings.
+
+=item * Remove C<_generate_entry_id> and use HTTP URLs as IDs by
+default. Using tag: URIs is useful for generating the ID once, up front,
+so that it won't change even if the permalink does -- if the ID is
+generated from the permalink, we might as well use the permalink
+directly.
+
+=item * Use L<XML::SAX::Writer> instead of L<XML::Simple> for output.
+
+=back
+
+Change of maintainers: 
+
+
+
+=head2 0.7 (2005-05-06)
+
+=over 4
+
+=item * Fix the module prereq in F<Makefile.PL> to actually do the
+proper dependency tests. Oops.
+
+=back
+
+
+
+=head2 0.6 (2005-04-27)
+
+=over 4
+
+=item * Use L<XML::Simple> to generate the XML, instead of doing strings
+by hand.
+
+=item * Make the module more robust: it now can handle multiple titles,
+links, etc. by passing in arrayrefs and hashrefs, while still allowing
+for simple use with strings.
+
+=back
+
+Many thanks to Aristotle Pagaltzis for the help.
+
+
+
+=head2 0.5 (2005-05-09)
+
+=over 4
+
+=item * Add an C<as_string> method to return the feed as a scalar.
+
+=item * Escape any C<< <![CDATA[ >> or C<< ]]> >> strings that appear in the
+content CDATA section.
+
+=item * Allow the save_file method to take either an open filehandle or
+a scalar containing a filename.
+
+=back
+
+These issues reported by Aristotle Pagaltzis.
+
+
+
+=head2 0.4 (2005-02-22)
+
+=over 4
+
+=item * Rework the author code again to fixe more bugs that I probably
+should have caught before releasing 0.3. Sigh.
+
+=back
+
+
+
+=head2 0.3 (2005-02-22)
+
+=over 4
+
+=item * Fixed a bug in the entry author section where the author name
+was always showing up as "name". (CPAN RT #11620)
+
+=item * Fixed a similar bug in the feed-level author section.
+
+=item * Happy Birthday, Holly!
+
+=back
+
+
+
+=head2 0.2 (2005-02-19)
+
+=over 4
+
+=item * Adjust the XML encoding to produce valid feeds.
+
+=back
+
+
+
+=head2 0.1 (2005-02-18)
+
+=over 4
+
+=item * Initial release.
+
+=back
+
+=for vim vi:tw=72:ft=pod

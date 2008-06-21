@@ -1,7 +1,4 @@
 use Test::More tests => 1;
 
-BEGIN {
-use_ok( 'XML::Atom::SimpleFeed' );
-}
-
-diag( "Testing XML::Atom::SimpleFeed $XML::Atom::SimpleFeed::VERSION" );
+require_ok( 'XML::Atom::SimpleFeed' )
+	or BAIL_OUT( 'testing pointless if the module won\'t even load' );

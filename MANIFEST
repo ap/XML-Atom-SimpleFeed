@@ -5,6 +5,5 @@ META.yml # Will be created by "make dist"
 README
 lib/XML/Atom/SimpleFeed.pm
 t/00.load.t
-t/pod-coverage.t
-t/pod.t
 Makefile.PL
+t/cpants.t
