@@ -3,7 +3,7 @@ require 5.008001; # no good Unicode support? you lose
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.81";
+$VERSION = "0.82";
 
 use warnings FATAL => 'all';
 use strict;
@@ -39,12 +39,12 @@ my %XML_ESC = (
 sub xml_cref { Encode::decode 'us-ascii', $_[ 0 ], Encode::HTMLCREF }
 
 sub xml_escape {
-	$_[ 0 ] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gx;
+	$_[ 0 ] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gex;
 	goto &xml_cref;
 }
 
 sub xml_attr_escape {
-	$_[ 0 ] =~ s{ ( [\x0A\x0D<>&'"] ) }{ $XML_ESC{ $1 } }gx;
+	$_[ 0 ] =~ s{ ( [\x0A\x0D<>&'"] ) }{ $XML_ESC{ $1 } }gex;
 	goto &xml_cref;
 }
 
@@ -382,7 +382,7 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.81
+This document describes XML::Atom::SimpleFeed version 0.82
 
 =head1 SYNOPSIS
 

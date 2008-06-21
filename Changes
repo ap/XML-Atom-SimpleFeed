@@ -2,7 +2,20 @@
 
 
 
-=head2 0.81 (2008-06-03)
+=head2 0.82 (2008-06-21)
+
+=over 4
+
+=item * I can't believe no one noticed in such a long time that the XML
+escaping function was broken. I need unit testsE<hellip>
+
+=item * Also, the date in the changelog entry for 0.81 was wrong.
+
+=back
+
+
+
+=head2 0.81 (2008-06-21)
 
 =over 4
 
