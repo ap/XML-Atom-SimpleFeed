@@ -3,7 +3,7 @@ require 5.008001; # no good Unicode support? you lose
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.82";
+$VERSION = "0.83";
 
 use warnings FATAL => 'all';
 use strict;
@@ -36,7 +36,7 @@ my %XML_ESC = (
 	'>'   => '&gt;',
 );
 
-sub xml_cref { Encode::decode 'us-ascii', $_[ 0 ], Encode::HTMLCREF }
+sub xml_cref { Encode::encode 'us-ascii', $_[ 0 ], Encode::HTMLCREF }
 
 sub xml_escape {
 	$_[ 0 ] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gex;
@@ -331,11 +331,11 @@ sub XML::Atom::SimpleFeed::add_entry  {
 	# o  atom:entry elements MUST contain an atom:summary element in either
 	#    of the following cases:
 	#    *  the atom:entry contains an atom:content that has a "src"
-    #       attribute (and is thus empty).
-    #    *  the atom:entry contains content that is encoded in Base64;
-    #       i.e., the "type" attribute of atom:content is a MIME media type
-    #       [MIMEREG], but is not an XML media type [RFC3023], does not
-    #       begin with "text/", and does not end with "/xml" or "+xml".
+	#       attribute (and is thus empty).
+	#    *  the atom:entry contains content that is encoded in Base64;
+	#       i.e., the "type" attribute of atom:content is a MIME media type
+	#       [MIMEREG], but is not an XML media type [RFC3023], does not
+	#       begin with "text/", and does not end with "/xml" or "+xml".
 
 	push @{ $self->{ entries } }, xml_tag entry => container_content entry => (
 		elements    => \@_,
@@ -382,7 +382,7 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.82
+This document describes XML::Atom::SimpleFeed version 0.83
 
 =head1 SYNOPSIS
 
@@ -424,27 +424,27 @@ XML::Atom::SimpleFeed instances are created by the C<new> constructor, which tak
 =over
 
 =item * L</C<id>> (I<omissible>)
-                         
+
 =item * L</C<link>> (I<omissible>, multiple)
-                         
+
 =item * L</C<title>> (B<required>)
-                         
+
 =item * L</C<author>> (optional, multiple)
-                         
+
 =item * L</C<category>> (optional, multiple)
-                         
+
 =item * L</C<contributor>> (optional, multiple)
-                         
+
 =item * L</C<generator>> (optional)
-                         
+
 =item * L</C<icon>> (optional)
-                         
+
 =item * L</C<logo>> (optional)
-                         
+
 =item * L</C<rights>> (optional)
-                         
+
 =item * L</C<subtitle>> (optional)
-                         
+
 =item * L</C<updated>> (optional)
 
 =back
@@ -709,7 +709,7 @@ If you find bugs or you have feature requests, please report them to L<mailto:bu
 
 Aristotle Pagaltzis, L<mailto:pagaltzis@gmx.de>
 
-API designed largely by by H. Wade Minter.
+API designed largely by H. Wade Minter.
 
 =head1 LICENCE AND COPYRIGHT
 
