@@ -3,7 +3,7 @@ require 5.008001; # no good Unicode support? you lose
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.83";
+$VERSION = "0.84";
 
 use warnings FATAL => 'all';
 use strict;
@@ -53,7 +53,7 @@ sub xml_cdata_flatten {
 		while( -1 < ( my $loc = index $_, "<![CDATA[" ) ) {
 			my $end = index $_, "]]>", $loc + 9;
 			croak "Incomplete CDATA section" if $end == -1;
-			substr $_, $loc, $end - $loc + 3, xml_escape substr $_, $loc + 9, $end - $loc - 9;
+			substr $_, $loc, $end - $loc - 4, xml_escape substr $_, $loc + 9, $end - $loc - 9;
 		}
 		return $_;
 	}
@@ -382,7 +382,7 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-This document describes XML::Atom::SimpleFeed version 0.83
+This document describes XML::Atom::SimpleFeed version 0.84
 
 =head1 SYNOPSIS
 

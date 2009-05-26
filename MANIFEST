@@ -5,6 +5,6 @@ META.yml # Will be created by "make dist"
 README
 lib/XML/Atom/SimpleFeed.pm
 t/00.load.t
-t/01.unicode.t
+t/01.xml_writer.t
 Makefile.PL
 t/cpants.t
