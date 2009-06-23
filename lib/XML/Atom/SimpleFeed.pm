@@ -3,7 +3,7 @@ require 5.008001; # no good Unicode support? you lose
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.84";
+$VERSION = "0.85";
 
 use warnings FATAL => 'all';
 use strict;
@@ -49,12 +49,10 @@ sub xml_attr_escape {
 }
 
 sub xml_cdata_flatten {
-	for( $_[ 0 ] ) {
-		while( -1 < ( my $loc = index $_, "<![CDATA[" ) ) {
-			my $end = index $_, "]]>", $loc + 9;
-			croak "Incomplete CDATA section" if $end == -1;
-			substr $_, $loc, $end - $loc - 4, xml_escape substr $_, $loc + 9, $end - $loc - 9;
-		}
+	for ( $_[0] ) {
+		my $cdata_content;
+		s{<!\[CDATA\[(.*?)]]>}{ xml_escape $cdata_content = $1 }ge;
+		croak 'Incomplete CDATA section' if -1 < index $_, '<![CDATA[';
 		return $_;
 	}
 }

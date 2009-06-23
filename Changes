@@ -2,6 +2,17 @@
 
 
 
+=head2 0.85 (2009-06-23)
+
+=over 4
+
+=item * Used a less finicky implementation strategy for the CDATA
+flattener so hopefully it will not be buggy any more
+
+=back
+
+
+
 =head2 0.84 (2009-05-26)
 
 =over 4
