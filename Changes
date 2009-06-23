@@ -2,6 +2,16 @@
 
 
 
+=head2 0.86 (2009-06-23)
+
+=over 4
+
+=item * Person constructs are properly escaped and encoded
+
+=back
+
+
+
 =head2 0.85 (2009-06-23)
 
 =over 4

@@ -3,7 +3,7 @@ require 5.008001; # no good Unicode support? you lose
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.85";
+$VERSION = "0.86";
 
 use warnings FATAL => 'all';
 use strict;
@@ -107,14 +107,15 @@ sub simple_construct {
 sub person_construct {
 	my ( $name, $arg ) = @_;
 
-	my @content = ref $arg eq 'HASH' ? do {
-		croak "name required for $name element" if not exists $arg->{ name };
-		map xml_tag( $_ => xml_escape $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( name email uri );
-	} : do {
-		xml_tag name => $arg;
-	};
+	my $prop = 'HASH' ne ref $arg ? { name => $arg } : $arg;
 
-	return xml_tag $name => @content;
+	croak "name required for $name element" if not exists $prop->{ name };
+
+	return xml_tag $name => (
+		map { xml_tag $_ => xml_escape $prop->{ $_ } }
+		grep { exists $prop->{ $_ } }
+		qw( name email uri )
+	);
 }
 
 sub text_construct {

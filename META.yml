@@ -1,6 +1,6 @@
 ---
 name: XML-Atom-SimpleFeed
-version: 0.85
+version: 0.86
 author:
   - 'Aristotle Pagaltzis <pagaltzis@gmx.de>'
 abstract: No-fuss generation of Atom syndication feeds
@@ -14,7 +14,7 @@ build_requires:
 provides:
   XML::Atom::SimpleFeed:
     file: lib/XML/Atom/SimpleFeed.pm
-    version: 0.85
+    version: 0.86
 generated_by: Module::Build version 0.33
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
