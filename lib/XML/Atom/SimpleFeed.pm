@@ -51,7 +51,7 @@ sub xml_attr_escape {
 sub xml_cdata_flatten {
 	for ( $_[0] ) {
 		my $cdata_content;
-		s{<!\[CDATA\[(.*?)]]>}{ xml_escape $cdata_content = $1 }ge;
+		s{<!\[CDATA\[(.*?)]]>}{ xml_escape $cdata_content = $1 }gse;
 		croak 'Incomplete CDATA section' if -1 < index $_, '<![CDATA[';
 		return $_;
 	}
