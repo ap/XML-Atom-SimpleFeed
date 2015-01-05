@@ -5,7 +5,7 @@ package XML::Atom::SimpleFeed;
 
 $VERSION = "0.86";
 
-use warnings FATAL => 'all';
+use warnings;
 use strict;
 
 use Carp;
