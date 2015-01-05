@@ -373,14 +373,6 @@ sub XML::Atom::SimpleFeed::save_file { croak q{no longer supported, use 'print' 
 
 __END__
 
-=head1 NAME
-
-XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
-
-=head1 VERSION
-
-This document describes XML::Atom::SimpleFeed version 0.84
-
 =head1 SYNOPSIS
 
  use XML::Atom::SimpleFeed;
@@ -408,15 +400,22 @@ This document describes XML::Atom::SimpleFeed version 0.84
 
 =head1 DESCRIPTION
 
-This module provides a minimal API for generating Atom syndication feeds quickly and easily. It supports all aspects of the Atom format, but has no provisions for generating feeds with extension elements.
+This module provides a minimal API for generating Atom syndication feeds
+quickly and easily. It supports all aspects of the Atom format, but has no
+provisions for generating feeds with extension elements.
 
-You can supply strings for most things, and the module will provide useful defaults. When you want more control, you can provide data structures, as documented, to specify more particulars.
+You can supply strings for most things, and the module will provide useful
+defaults. When you want more control, you can provide data structures, as
+documented, to specify more particulars.
 
 =head1 INTERFACE
 
 =head2 C<new>
 
-XML::Atom::SimpleFeed instances are created by the C<new> constructor, which takes a list of key-value pairs as parameters. The keys are used to create the corresponding L<"Atom elements"|/ATOM ELEMENTS>. The following elements are available:
+XML::Atom::SimpleFeed instances are created by the C<new> constructor, which
+takes a list of key-value pairs as parameters. The keys are used to create the
+corresponding L<"Atom elements"|/ATOM ELEMENTS>. The following elements are
+available:
 
 =over
 
@@ -446,11 +445,14 @@ XML::Atom::SimpleFeed instances are created by the C<new> constructor, which tak
 
 =back
 
-To specify multiple instances of an element that may be given multiple times, simply list multiple key-value pairs with the same key.
+To specify multiple instances of an element that may be given multiple times,
+simply list multiple key-value pairs with the same key.
 
 =head2 C<add_entry>
 
-This method adds an entry into the Atom feed. It takes a list of key-value pairs as parameters. The keys are used to create the corresponding L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
+This method adds an entry into the Atom feed. It takes a list of key-value
+pairs as parameters. The keys are used to create the corresponding
+L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
 
 =over
 
@@ -478,11 +480,13 @@ This method adds an entry into the Atom feed. It takes a list of key-value pairs
 
 =back
 
-To specify multiple instances of an element that may be given multiple times, simply list multiple key-value pairs with the same key.
+To specify multiple instances of an element that may be given multiple times,
+simply list multiple key-value pairs with the same key.
 
 =head2 C<no_generator>
 
-Suppresses the output of a default C<generator> element. It is not necessary to call this method if you supply a custom C<generator> element.
+Suppresses the output of a default C<generator> element. It is not necessary to
+call this method if you supply a custom C<generator> element.
 
 =head2 C<as_string>
 
@@ -490,7 +494,8 @@ Returns the XML representation of the feed as a string.
 
 =head2 C<print>
 
-Outputs the XML representation of the feed to a handle which should be passed as a parameter. Defaults to C<STDOUT> if you do not pass a handle.
+Outputs the XML representation of the feed to a handle which should be passed
+as a parameter. Defaults to C<STDOUT> if you do not pass a handle.
 
 =head1 ATOM ELEMENTS
 
@@ -498,12 +503,16 @@ Outputs the XML representation of the feed to a handle which should be passed as
 
 A L</Person Construct> denoting the author of the feed or entry.
 
-If you supply at least one author for the feed, you can omit this information from entries; the feed's author(s) will be assumed as the author(s) for those entries. If you do not supply any author for the feed, you B<must> supply one for each entry.
-
+If you supply at least one author for the feed, you can omit this information
+from entries; the feed's author(s) will be assumed as the author(s) for those
+entries. If you do not supply any author for the feed, you B<must> supply one
+for each entry.
 
 =head2 C<category>
 
-One or more categories that apply to the feed or entry. You can supply a string which will be used as the category term. The full range of details that can be provided by passing a hash instead of a string is as follows:
+One or more categories that apply to the feed or entry. You can supply a string
+which will be used as the category term. The full range of details that can be
+provided by passing a hash instead of a string is as follows:
 
 =over
 
@@ -515,7 +524,11 @@ The category term.
 
 A URI that identifies a categorization scheme.
 
-It is common to provide the base of some kind of by-category URL here. F.ex., if the weblog C<http://www.example.com/blog/> can be browsed by category using URLs such as C<http://www.example.com/blog/category/personal>, you would supply C<http://www.example.com/blog/category/> as the scheme and, in that case, C<personal> as the term.
+It is common to provide the base of some kind of by-category URL here. F.ex.,
+if the weblog C<http://www.example.com/blog/> can be browsed by category using
+URLs such as C<http://www.example.com/blog/category/personal>, you would supply
+C<http://www.example.com/blog/category/> as the scheme and, in that case,
+C<personal> as the term.
 
 =item C<label> (optional)
 
@@ -523,49 +536,68 @@ A human-readable version of the term.
 
 =back
 
-
 =head2 C<content>
 
-The actual, honest-to-goodness, body of the entry. This is like a L</Text Construct>, with a couple of extras.
+The actual, honest-to-goodness, body of the entry. This is like a
+L</Text Construct>, with a couple of extras.
 
-In addition to the C<type> values of a L</Text Construct>, you can also supply any MIME Type (except multipart types, which the Atom format specification forbids). If you specify a C<text/*> type, the same rules apply as for C<text>. If you pass a C<*/xml> or C<*/*+xml> type, the same rules apply as for C<xhtml> (except in that case there is no wrapper C<< <div> >> element). Any other type will be transported as Base64-encoded binary.
+In addition to the C<type> values of a L</Text Construct>, you can also supply
+any MIME Type (except multipart types, which the Atom format specification
+forbids). If you specify a C<text/*> type, the same rules apply as for C<text>.
+If you pass a C<*/xml> or C<*/*+xml> type, the same rules apply as for C<xhtml>
+(except in that case there is no wrapper C<< <div> >> element). Any other type
+will be transported as Base64-encoded binary.
 
-XXX Furthermore, you can supply a C<src> key in place of the C<content> key. In that case, the value of the C<src> key should be a URL denoting the actual location of the content. FIXME This is not currently supported. XXX
-
+XXX Furthermore, you can supply a C<src> key in place of the C<content> key. In
+that case, the value of the C<src> key should be a URL denoting the actual
+location of the content. FIXME This is not currently supported. XXX
 
 =head2 C<contributor>
 
 A L</Person Construct> denoting a contributor to the feed or entry.
 
-
 =head2 C<generator>
 
-The software used to generate the feed. Can be supplied as a string, or a hash with C<uri>, C<version> and C<name> keys. Defaults to reporting XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
-
+The software used to generate the feed. Can be supplied as a string, or a hash
+with C<uri>, C<version> and C<name> keys. Defaults to reporting
+XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
 
 =head2 C<icon>
 
 The URI of a small image that should have the same height and width.
 
-
 =head2 C<id>
 
-A URI that is a permanent, globally unique identifier for the feed or entry that B<MUST NEVER CHANGE>.
+A URI that is a permanent, globally unique identifier for the feed or entry
+that B<MUST NEVER CHANGE>.
 
-You are encouraged to generate a UUID using L<Data::UUID> for the purpose of identifying entries/feeds. It should be stored alongside the resource corresponding to the entry/feed, f.ex. in a column of the article table of your weblog database. To use it as an identifier in the entry/feed, use the C<urn:uuid:########-####-####-####-############> URI form.
+You are encouraged to generate a UUID using L<Data::UUID> for the purpose of
+identifying entries/feeds. It should be stored alongside the resource
+corresponding to the entry/feed, f.ex. in a column of the article table of your
+weblog database. To use it as an identifier in the entry/feed, use the
+C<urn:uuid:########-####-####-####-############> URI form.
 
-If you do not specify an ID, the permalink will be used instead. This is unwise, as permalinks do unfortunately occasionally change. B<It is your responsibility to ensure that the permalink NEVER CHANGES.>
-
+If you do not specify an ID, the permalink will be used instead. This is
+unwise, as permalinks do unfortunately occasionally change.
+B<It is your responsibility to ensure that the permalink NEVER CHANGES.>
 
 =head2 C<link>
 
-A link element. You can either supply a bare string as the parameter, which will be used as the permalink URI, or a hash. The permalink for a feed is generally a browser-viewable weblog, upload browser, search engine results page or similar web page; for an entry, it is generally a browser-viewable article, upload details page, search result or similar web page. This URI I<should> be unique. If you supply a hash, you can provide the following range of details in the given hash keys:
+A link element. You can either supply a bare string as the parameter, which
+will be used as the permalink URI, or a hash. The permalink for a feed is
+generally a browser-viewable weblog, upload browser, search engine results page
+or similar web page; for an entry, it is generally a browser-viewable article,
+upload details page, search result or similar web page. This URI I<should> be
+unique. If you supply a hash, you can provide the following range of details in
+the given hash keys:
 
 =over
 
 =item C<rel> (optional)
 
-The link relationship. If omitted, defaults to C<alternate> (note that you can only have one alternate link per feed/entry). Other permissible values are C<related>, C<self>, C<enclosure> and C<via>, as well as any URI.
+The link relationship. If omitted, defaults to C<alternate> (note that you can
+only have one alternate link per feed/entry). Other permissible values are
+C<related>, C<self>, C<enclosure> and C<via>, as well as any URI.
 
 =item C<href> (B<required> URL)
 
@@ -573,7 +605,8 @@ Where the link points to.
 
 =item C<type> (optional)
 
-An advisory media type that provides a hint about the type of the resource pointed to by the link.
+An advisory media type that provides a hint about the type of the resource
+pointed to by the link.
 
 =item C<hreflang> (optional)
 
@@ -589,59 +622,58 @@ A hint about the content length in bytes of the resource pointed to by the link.
 
 =back
 
-
 =head2 C<logo>
 
 The URI of an image that should be twice as wide as it is high.
 
-
 =head2 C<published>
 
-A L</Date Construct> denoting the moment in time when the entry was first published. This should never change.
-
+A L</Date Construct> denoting the moment in time when the entry was first
+published. This should never change.
 
 =head2 C<rights>
 
-A L</Text Construct> containing a human-readable statement of legal rights for the content of the feed or entry. This is not intended for machine processing.
-
+A L</Text Construct> containing a human-readable statement of legal rights for
+the content of the feed or entry. This is not intended for machine processing.
 
 =head2 C<subtitle>
 
 A L</Text Construct> containing an optional additional description of the feed.
 
-
 =head2 C<summary>
 
 A L</Text Construct> giving a short summary of the entry.
-
 
 =head2 C<title>
 
 A L</Text Construct> containing the title of the feed or entry.
 
-
 =head2 C<updated>
 
-A L</Date Construct> denoting the moment in time when the feed or entry was last updated. Defaults to the current date and time if omitted.
+A L</Date Construct> denoting the moment in time when the feed or entry was
+last updated. Defaults to the current date and time if omitted.
 
-In entries, you can use this element to signal I<significant> changes at your discretion.
-
-
+In entries, you can use this element to signal I<significant> changes at your
+discretion.
 
 =head1 COMMON ATOM CONSTRUCTS
 
-A number of Atom elements share a common structure. The following sections outline the data you can (or must) pass in each case.
+A number of Atom elements share a common structure. The following sections
+outline the data you can (or must) pass in each case.
 
 =head2 Date Construct
 
-A string denoting a date and time in W3CDTF format. You can generate those using something like
+A string denoting a date and time in W3CDTF format. You can generate those
+using something like
 
- use POSIX qw( strftime );
+ use POSIX 'strftime';
  my $now = strftime '%Y-%m-%dT%H:%M:%SZ', gmtime;
 
 =head2 Person Construct
 
-You can supply a string to Person Construct parameters, which will be used as the name of the person. The full range of details that can be provided by passing a hash instead of a string is as follows:
+You can supply a string to Person Construct parameters, which will be used as
+the name of the person. The full range of details that can be provided by
+passing a hash instead of a string is as follows:
 
 =over
 
@@ -655,16 +687,17 @@ The person's email address.
 
 =item C<uri> (optional)
 
-A URI to distinguish this person. This would usually be a homepage, but need not actually be a dereferencable URL.
+A URI to distinguish this person. This would usually be a homepage, but need
+not actually be a dereferencable URL.
 
 =back
 
 =head2 Text Construct
 
-You can supply a string to Text Construct parameters, which will be used as the HTML content of the element.
+You can supply a string to Text Construct parameters, which will be used as the
+HTML content of the element.
 
 FIXME details, text/html/xhtml
-
 
 =head1 SEE ALSO
 
@@ -682,38 +715,23 @@ FIXME details, text/html/xhtml
 
 =back
 
-
 =head1 BUGS AND LIMITATIONS
 
-In C<content> elements, the C<src> attribute cannot be used, and non-XML or -text media types do not get Base64-encoded automatically. This is a bug.
+In C<content> elements, the C<src> attribute cannot be used, and non-XML or
+non-text media types do not get Base64-encoded automatically. This is a bug.
 
 There are practically no tests. This is a bug.
 
-Support for C<xml:lang> and C<xml:base> is completely absent. This is a bug and should be partially addressed in a future version. There are however no plans to allow these attributes on arbitrary elements.
+Support for C<xml:lang> and C<xml:base> is completely absent. This is a bug and
+should be partially addressed in a future version. There are however no plans
+to allow these attributes on arbitrary elements.
 
-There are no plans to ever support generating feeds with arbitrary extensions, although support for specific extensions may or may not be added in the future.
+There are no plans to ever support generating feeds with arbitrary extensions,
+although support for specific extensions may or may not be added in the future.
 
 The C<source> element is not and may never be supported.
 
-Nothing is done to ensure that text constructs with type C<xhtml> and entry contents using either that or an XML media type are well-formed. So far, this is by design. You should strongly consider using an XML writer if you want to include content with such types in your feed.
-
-If you find bugs or you have feature requests, please report them to L<mailto:bug-xml-atom-simplefeed@rt.cpan.org>, or through the web interface at L<http://rt.cpan.org>.
-
-
-=head1 AUTHOR
-
-Aristotle Pagaltzis, L<mailto:pagaltzis@gmx.de>
-
-API designed largely by H. Wade Minter.
-
-=head1 LICENCE AND COPYRIGHT
-
-Copyright (c) 2005-2006, Aristotle Pagaltzis. All rights reserved.
-
-This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself. See L<perlartistic>.
-
-=head1 DISCLAIMER OF WARRANTY
-
-BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
-
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+Nothing is done to ensure that text constructs with type C<xhtml> and entry
+contents using either that or an XML media type are well-formed. So far, this
+is by design. You should strongly consider using an XML writer if you want to
+include content with such types in your feed.
