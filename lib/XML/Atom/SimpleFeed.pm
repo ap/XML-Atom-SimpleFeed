@@ -682,8 +682,6 @@ FIXME details, text/html/xhtml
 
 =item * L<XML::Feed>
 
-=item * http://groups.yahoo.com/group/atomic-perl/
-
 =back
 
 
