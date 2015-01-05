@@ -564,7 +564,7 @@ XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
 
 =head2 C<icon>
 
-The URI of a small image that should have the same height and width.
+The URI of a small image whose width and height should be identical.
 
 =head2 C<id>
 
