@@ -1,12 +1,10 @@
-#!/usr/bin/perl
-require 5.008001; # no good Unicode support? you lose
+use 5.008001; # no good Unicode support? you lose
+use strict;
+use warnings;
 
 package XML::Atom::SimpleFeed;
 
-$VERSION = "0.86";
-
-use warnings;
-use strict;
+# ABSTRACT: No-fuss generation of Atom syndication feeds
 
 use Carp;
 use Encode ();
@@ -18,7 +16,7 @@ sub PREAMBLE          () { qq(<?xml version="1.0" encoding="us-ascii"?>\n) }
 sub W3C_DATETIME      () { '%Y-%m-%dT%H:%M:%SZ' }
 sub DEFAULT_GENERATOR () { {
 	uri     => 'http://search.cpan.org/dist/' . join( '-', split /::/, __PACKAGE__ ) . '/',
-	version => __PACKAGE__->VERSION,
+	version => __PACKAGE__->VERSION || 'git',
 	name    => __PACKAGE__,
 } }
 
