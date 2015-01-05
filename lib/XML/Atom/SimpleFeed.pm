@@ -37,13 +37,13 @@ my %XML_ESC = (
 sub xml_cref { Encode::encode 'us-ascii', $_[ 0 ], Encode::HTMLCREF }
 
 sub xml_escape {
-	$_[ 0 ] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gex;
-	goto &xml_cref;
+	$_[0] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gex;
+	&xml_cref;
 }
 
 sub xml_attr_escape {
-	$_[ 0 ] =~ s{ ( [\x0A\x0D<>&'"] ) }{ $XML_ESC{ $1 } }gex;
-	goto &xml_cref;
+	$_[0] =~ s{ ( [\x0A\x0D<>&'"] ) }{ $XML_ESC{ $1 } }gex;
+	&xml_cref;
 }
 
 sub xml_cdata_flatten {
