@@ -15,7 +15,7 @@ sub XHTML_NS          () { 'http://www.w3.org/1999/xhtml' }
 sub PREAMBLE          () { qq(<?xml version="1.0" encoding="us-ascii"?>\n) }
 sub W3C_DATETIME      () { '%Y-%m-%dT%H:%M:%S' }
 sub DEFAULT_GENERATOR () { {
-	uri     => 'http://search.cpan.org/dist/' . join( '-', split /::/, __PACKAGE__ ) . '/',
+	uri     => 'https://metacpan.org/pod/' . __PACKAGE__,
 	version => __PACKAGE__->VERSION || 'git',
 	name    => __PACKAGE__,
 } }
