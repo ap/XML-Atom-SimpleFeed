@@ -6,381 +6,488 @@ package XML::Atom::SimpleFeed;
 
 # ABSTRACT: No-fuss generation of Atom syndication feeds
 
-use Carp;
-use Encode ();
-use POSIX ();
+# XXX split validations out into `is_valid` method or such to be able to call at `as_xml` time also?
+# TODO add requirements from RFC 4287 as comments to the relevant sections of the code and mark todos etc
 
-sub ATOM_NS           () { 'http://www.w3.org/2005/Atom' }
-sub XHTML_NS          () { 'http://www.w3.org/1999/xhtml' }
-sub PREAMBLE          () { qq(<?xml version="1.0" encoding="us-ascii"?>\n) }
-sub W3C_DATETIME      () { '%Y-%m-%dT%H:%M:%S' }
-sub DEFAULT_GENERATOR () { {
-	uri     => 'https://metacpan.org/pod/' . __PACKAGE__,
-	version => __PACKAGE__->VERSION || 'git',
-	name    => __PACKAGE__,
-} }
+use Object::Tiny::Lvalue qw( feed encoding );
+use XML::Builder;
+use Carp::Clan '^XML::Atom::SimpleFeed(?:\z|::)';
 
-####################################################################
-# superminimal XML writer
-# 
-
-my %XML_ESC = (
-	"\xA" => '&#10;',
-	"\xD" => '&#13;',
-	'"'   => '&#34;',
-	'&'   => '&#38;',
-	"'"   => '&#39;',
-	'<'   => '&lt;',
-	'>'   => '&gt;',
-);
-
-sub xml_cref { Encode::encode 'us-ascii', $_[ 0 ], Encode::HTMLCREF }
-
-sub xml_escape {
-	$_[0] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gex;
-	&xml_cref;
+sub new {
+	my $self = bless {}, shift;
+	$self->feed = XML::Atom::SimpleFeed::Tag::Feed->new( @_ );
+	return $self;
 }
 
-sub xml_attr_escape {
-	$_[0] =~ s{ ( [\x0A\x0D<>&'"] ) }{ $XML_ESC{ $1 } }gex;
-	&xml_cref;
+sub add_entry  {
+	my $self = shift;
+	$self->feed->add_entry( @_ );
+	return $self;
 }
 
-sub xml_cdata_flatten {
-	for ( $_[0] ) {
-		my $cdata_content;
-		s{<!\[CDATA\[(.*?)]]>}{ xml_escape $cdata_content = $1 }gse;
-		croak 'Incomplete CDATA section' if -1 < index $_, '<![CDATA[';
-		return $_;
+sub as_xml {
+	my $self = shift;
+	my ( $builder ) = @_;
+	my $atom_ns = 'http://www.w3.org/2005/Atom';
+	$builder = XML::Builder->new( encoding => 'us-ascii' ) if not $builder;
+	eval { $builder->register_ns( $atom_ns => '' ) };
+	$self->feed->as_xml( $builder->register_ns( $atom_ns ) );
+}
+
+sub as_string {
+	my $self = shift;
+	return $self->as_xml( @_ )->as_string;
+}
+
+sub default_generator {
+	my $class = shift;
+	return (
+		uri      => 'http://search.cpan.org/dist/' . join( '-', split /::/, $class ) . '/',
+		version  => $class->VERSION || 'git',
+		name     => $class,
+	)
+}
+
+# LEGACY METHODS (only left here for backcompat)
+sub no_generator {
+	my $self = shift;
+	for my $g ( $self->feed->generator ) {
+		undef $g if $g and $g->_default;
+	}
+	return $self;
+}
+sub print {
+	my $self = shift;
+	my ( $fh ) = @_;
+	my $old_fh = select;
+	select $fh if defined $fh;
+	local $, = local $\ = '';
+	my $res = print $self->as_string;
+	select $old_fh if defined $fh;
+	return $res;
+}
+sub save_file { croak q{no longer supported, use 'print' instead and pass in a filehandle} }
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct;
+
+sub tag    { die }
+sub as_xml { die }
+
+sub class_for_name { "XML::Atom::SimpleFeed::Tag::\u$_[1]" }
+
+sub make_subclass {
+	my $class = shift;
+	for my $tag ( @_ ) {
+		my $subclass = $class->class_for_name( $tag );
+		eval qq(
+			package $subclass;
+			use parent -norequire => '$class';
+			sub tag { '$tag' }
+		);
 	}
 }
 
-sub xml_string { xml_cref xml_cdata_flatten $_[ 0 ] }
-
-sub xml_tag {
+sub make_element {
+	my $self = shift;
 	my $name = shift;
-	my $attr = '';
-	if( ref $name eq 'ARRAY' ) {
-		my $i = 1;
-		while( $i < @$name ) {
-			$attr .= ' ' . $name->[ $i ] . '="' . xml_attr_escape( $name->[ $i + 1 ] ) . '"';
-			$i += 2;
-		}
-		$name = $name->[ 0 ];
-	}
-	@_ ? join( '', "<$name$attr>", @_, "</$name>" ) : "<$name$attr/>";
+	my $class = $self->class_for_name( $name );
+	return $class->new( @_ );
 }
 
-####################################################################
-# misc utility functions
-#
+sub croak {
+	my $self = shift;
+	XML::Atom::SimpleFeed::croak( @_ );
+}
 
-sub natural_enum {
-	my @and;
-	unshift @and, pop @_ if @_;
-	unshift @and, join ', ', @_ if @_;
-	join ' and ', @and;
+sub carp {
+	my $self = shift;
+	XML::Atom::SimpleFeed::carp( @_ );
+}
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct::Simple;
+use Object::Tiny::Lvalue qw( content );
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct';
+
+__PACKAGE__->make_subclass( qw( icon id logo ) );
+
+sub new {
+	my $class = shift;
+	unshift @_, 'content' if @_ == 1;
+	bless { @_ }, $class;
+}
+
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+	$atom_ns->qname( $self->tag, $self->content );
+}
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct::Date;
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct::Simple';
+
+__PACKAGE__->make_subclass( qw( published updated ) );
+
+sub new {
+	my $class = shift;
+	my $self = $class->SUPER::new( @_ );
+
+	my $dt = $self->content;
+	eval { $dt = $dt->epoch }; # convert to epoch to avoid dealing with everyone's TZ crap
+	$self->content = POSIX::strftime( '%Y-%m-%dT%H:%M:%SZ', gmtime $dt ) unless $dt =~ /[^0-9]/;
+
+	return $self;
+}
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct::Person;
+use Object::Tiny::Lvalue qw( name email uri );
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct';
+
+__PACKAGE__->make_subclass( qw( author contributor ) );
+
+sub new {
+	my $class = shift;
+	unshift @_, 'name' if @_ == 1;
+	my $self = bless { @_ }, $class;
+	$self->croak( "name required for ${\$self->tag} element" ) if not defined $self->name;
+	return $self;
+}
+
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+	$atom_ns->qname( $self->tag, map {
+		my $val = $self->$_;
+		defined $val ? $atom_ns->qname( $_, $val ) : ();
+	} qw( name email uri ) );
+}
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct::Text;
+use Object::Tiny::Lvalue qw( type content );
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct';
+
+__PACKAGE__->make_subclass( qw( title subtitle rights summary content ) );
+
+# FIXME doesn't support @src attribute for $name eq 'content' yet
+# TODO make text construct subclass of content construct to implement @src and disallow MIME types
+
+sub new {
+	my $class = shift;
+	unshift @_, 'content' if @_ == 1;
+	my $self = bless { @_ }, $class;
+
+	$self->croak( "content required for ${\$self->tag} element" ) unless defined $self->content;
+
+	if ( not defined $self->type ) {
+		$self->type = 'html';
+	}
+	else {
+		$self->croak( "type '${\$self->type}' not allowed in ${\$self->tag} element" )
+			if  $self->tag  ne 'content'
+			and $self->type !~ /\A(?:text|x?html)\z/;
+	}
+
+	return $self;
+}
+
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+
+	my $t = $self->type;
+	my $c = $self->content;
+
+	if (
+		# FIXME do these cover all cases correctly?
+		   ( $t eq  'html' and $c !~ /[<&]/ )
+		or ( $t eq 'xhtml' and $c !~ /</ )
+	) {
+		$t = 'text';
+		$c =~ s/[\n\t]+/ /g;
+	}
+	elsif ( $t eq 'xhtml' ) {
+		my $builder = $atom_ns->builder;
+		$c = $builder->unsafe( $c );
+		$c = $builder->qname( 'http://www.w3.org/1999/xhtml' => div => $c )->root;
+	}
+	elsif ( $t ne 'text' ) {
+		# FIXME non-XML/text media types must be base64 encoded!
+	}
+
+	$atom_ns->qname( $self->tag, ( $t ne 'text' ? { type => $t } : () ), $c );
+}
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct::AttrValue;
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct';
+
+__PACKAGE__->make_subclass( qw( link category ) ); # see overridden `make_subclass` below
+
+sub required_attr  { die }
+sub optional_attrs { die }
+
+sub attr_names { $_[0]->required_attr, $_[0]->optional_attrs }
+
+sub new {
+	my $class = shift;
+	my $req = $class->required_attr;
+	unshift @_, $req if @_ == 1;
+	my $self = bless { @_ }, $class;
+	$self->croak( "$req required for ${\$self->tag} element" ) if not defined $self->$req;
+	return $self;
+}
+
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+
+	my %attr = map {
+		my $v = $self->$_;
+		defined $v ? ( $_ => $v ) : ();
+	} $self->attr_names;
+
+	$atom_ns->qname( $self->tag, \%attr );
+}
+
+sub make_subclass {
+	my $class = shift;
+	$class->SUPER::make_subclass( @_ );
+	for my $tag ( @_ ) {
+		my $subclass = $class->class_for_name( $tag );
+		eval qq(
+			package $subclass;
+			use Object::Tiny::Lvalue __PACKAGE__->attr_names;
+		);
+	}
+}
+
+package XML::Atom::SimpleFeed::Tag::Link;
+sub required_attr  { 'href' }
+sub optional_attrs { qw( rel type title hreflang length ) }
+
+sub new {
+	my $class = shift;
+	my $self = $class->SUPER::new( @_ );
+	# $self->croak( "link '$attr->{ href }' is not a valid URI" )
+	# 	if $attr->href XXX FIXME
+	$self->rel = 'alternate' if not defined $self->rel;
+	return $self;
+}
+
+sub as_xml {
+	my $self = shift;
+	# omit atom:link/@rel value when possible:
+	local $self->{ rel } if $self->rel eq 'alternate';
+	return $self->SUPER::as_xml( @_ );
 }
 
 sub permalink {
-	my ( $link_arg ) = ( @_ );
-	if( ref $link_arg ne 'HASH' ) {
-		return $link_arg;
+	my $self = shift;
+	return $self->rel eq 'alternate' ? $self->href : ();
+}
+
+package XML::Atom::SimpleFeed::Tag::Category;
+sub required_attr  { 'term' }
+sub optional_attrs { qw( scheme label ) }
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Tag::Generator;
+use Object::Tiny::Lvalue qw( name uri version _default );
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct';
+
+sub tag { 'generator' }
+
+sub new {
+	my $class = shift;
+	unshift @_, 'name' if @_ == 1;
+	my $self = bless { @_ }, $class;
+	$self->croak( "name required for ${\$self->tag} element" ) if not defined $self->name;
+	return $self;
+}
+
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+
+	my %attr = map {
+		my $v = $self->$_;
+		defined $v ? ( $_ => $v ) : ();
+	} qw( uri version );
+
+	$atom_ns->qname( $self->tag, \%attr, $self->name );
+}
+
+#######################################################################
+
+package XML::Atom::SimpleFeed::Construct::Container;
+use Object::Tiny::Lvalue qw( content _singular_for _permalink id updated );
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct';
+
+__PACKAGE__->make_subclass( qw( feed entry ) ); # see overridden `make_subclass` below
+
+sub required { die }
+sub optional { die }
+sub singular { die }
+
+sub new {
+	my $class = shift;
+	my $self = bless {}, $class;
+
+	$self->_singular_for = {};
+	$self->_singular_for->{ $_ } = 1 for $self->singular;
+
+	for my $i ( 0 .. $#_ ) {
+		next if $i % 2;
+		my ( $elem, $arg ) = @_[ $i, $i + 1 ];
+		my $t   = ref $arg;
+		my @arg = 'ARRAY' eq $t ? @$arg : 'HASH' eq $t ? %$arg : $arg;
+		$self->add( $elem => @arg );
 	}
-	elsif( not exists $link_arg->{ rel } or $link_arg->{ rel } eq 'alternate' ) {
-		return $link_arg->{ href };
+
+	if ( defined $self->_permalink and not defined $self->id ) {
+		$self->carp( 'Falling back to alternate link as id' );
+		$self->add( id => $self->_permalink );
 	}
-	return;
+
+	$self->add( updated => time )
+		if not defined $self->updated;
+
+	if ( my @missing = grep { not defined $self->$_ } $self->required ) {
+		my $missing = do {
+			my @and;
+			unshift @and, pop @missing if @missing;
+			unshift @and, join ', ', @missing if @missing;
+			join ' and ', @and;
+		};
+		$self->croak( "Missing $missing elements in ${\$self->tag}" );
+	}
+
+	return $self;
 }
 
-####################################################################
-# actual implementation of RFC 4287
-#
+sub add {
+	my $self = shift;
+	my $name = shift;
+	my $element = $self->make_element( $name, @_ );
 
-sub simple_construct {
-	my ( $name, $content ) = @_;
-	xml_tag $name, xml_escape $content;
-}
+	if ( $name eq 'link' and defined ( my $href = $element->permalink ) ) {
+		$self->croak( "Too many permalinks for ${\$self->tag}" ) if defined $self->_permalink;
+		$self->_permalink = $href;
+	}
 
-sub date_construct {
-	my ( $name, $dt ) = @_;
-	eval { $dt = $dt->epoch }; # convert to epoch to avoid dealing with everyone's TZ crap
-	$dt = POSIX::strftime( W3C_DATETIME . 'Z', gmtime $dt ) unless $dt =~ /[^0-9]/;
-	xml_tag $name, xml_escape $dt;
-}
-
-sub person_construct {
-	my ( $name, $arg ) = @_;
-
-	my $prop = 'HASH' ne ref $arg ? { name => $arg } : $arg;
-
-	croak "name required for $name element" if not exists $prop->{ name };
-
-	return xml_tag $name => (
-		map { xml_tag $_ => xml_escape $prop->{ $_ } }
-		grep { exists $prop->{ $_ } }
-		qw( name email uri )
-	);
-}
-
-sub text_construct {
-	my ( $name, $arg ) = @_;
-
-	my ( $type, $content );
-
-	if( ref $arg eq 'HASH' ) {
-		# FIXME doesn't support @src attribute for $name eq 'content' yet
-
-		$type = exists $arg->{ type } ? $arg->{ type } : 'html';
-
-		croak "content required for $name element" unless exists $arg->{ content };
-
-		# a lof of the effort that follows is to omit the type attribute whenever possible
-		# 
-		if( $type eq 'xhtml' ) {
-			$content = xml_string $arg->{ content };
-
-			if( $content !~ /</ ) { # FIXME does this cover all cases correctly?
-				$type = 'text';
-				$content =~ s/[\n\t]+/ /g;
-			}
-			else {
-				$content = xml_tag [ div => xmlns => XHTML_NS ], $content;
-			}
-		}
-		elsif( $type eq 'html' or $type eq 'text' ) {
-			$content = xml_escape $arg->{ content };
-		}
-		else {
-			croak "type '$type' not allowed in $name element"
-				if $name ne 'content';
-
-			# FIXME non-XML/text media types must be base64 encoded!
-			$content = xml_string $arg->{ content };
-		}
+	if ( $self->_singular_for->{ $name } ) {
+		$self->croak( "Too many $name elements for ${\$self->tag}" ) if defined $self->$name;
+		$self->$name = $element;
 	}
 	else {
-		$type = 'html';
-		$content = xml_escape $arg;
+		$self->$name ||= [];
+		push @{ $self->$name }, $element;
 	}
 
-	if( $type eq 'html' and $content !~ /&/ ) {
-		$type = 'text';
-		$content =~ s/[\n\t]+/ /g;
-	}
-
-	return xml_tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
+	return $self;
 }
 
-sub link_element {
-	my ( $name, $arg ) = @_;
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+	my $sing = $self->_singular_for;
 
-	# omit atom:link/@rel value when possible
-	delete $arg->{'rel'}
-		if 'HASH' eq ref $arg
-		and exists $arg->{'rel'}
-		and 'alternate' eq $arg->{'rel'};
-
-	my @attr = 'HASH' eq ref $arg
-		? do {
-			croak "href required for link element" if not exists $arg->{'href'};
-			map { $_ => $arg->{ $_ } } grep exists $arg->{ $_ }, qw( href rel type title hreflang length );
-		}
-		: ( href => $arg );
-
-	# croak "link '$attr[1]' is not a valid URI"
-	# 	if $attr[1] XXX TODO
-
-	xml_tag [ link => @attr ];
+	$atom_ns->qname( $self->tag, map {
+		my $o = $self->$_;
+		map { defined $_ ? $_->as_xml( $atom_ns ) : () } ( $sing->{$_} ? $o : @$o );
+	} $self->required, $self->optional );
 }
 
-sub category_element {
-	my ( $name, $arg ) = @_;
-
-	my @attr = 'HASH' eq ref $arg
-		? do {
-			croak "term required for category element" if not exists $arg->{'term'};
-			map { $_ => $arg->{ $_ } } grep exists $arg->{ $_ }, qw( term scheme label );
-		}
-		: ( term => $arg );
-
-	xml_tag [ category => @attr ];
-}
-
-sub generator_element {
-	my ( $name, $arg ) = @_;
-	if( ref $arg eq 'HASH' ) {
-		croak 'name required for generator element' if not exists $arg->{ name };
-		my $content = delete $arg->{ name };
-		xml_tag [ generator => map +( $_ => $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( uri version ) ], xml_escape( $content );
-	}
-	else {
-		xml_tag generator => xml_escape( $arg );
+sub make_subclass {
+	my $class = shift;
+	$class->SUPER::make_subclass( @_ );
+	for my $tag ( @_ ) {
+		my $subclass = $class->class_for_name( $tag );
+		eval qq(
+			package $subclass;
+			use Object::Tiny::Lvalue __PACKAGE__->required, __PACKAGE__->optional;
+		);
 	}
 }
 
-# tag makers are called with the name of the tag they're supposed to handle as the first parameter
-my %make_tag = (
-	icon        => \&simple_construct,
-	id          => \&simple_construct,
-	logo        => \&simple_construct,
-	published   => \&date_construct,
-	updated     => \&date_construct,
-	author      => \&person_construct,
-	contributor => \&person_construct,
-	title       => \&text_construct,
-	subtitle    => \&text_construct,
-	rights      => \&text_construct,
-	summary     => \&text_construct,
-	content     => \&text_construct,
-	link        => \&link_element,
-	category    => \&category_element,
-	generator   => \&generator_element,
-);
+package XML::Atom::SimpleFeed::Tag::Feed;
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct::Container';
 
-sub container_content {
-	my ( $name, %arg ) = @_;
+sub required { qw( title id updated ) }
+sub optional { qw( subtitle link icon logo author contributor rights generator category entry ) }
+sub singular { qw( generator icon id logo rights subtitle title updated ) }
 
-	my ( $elements, $required, $optional, $singular, $deprecation, $callback ) =
-		@arg{ qw( elements required optional singular deprecate callback ) };
+sub new {
+	my $class = shift;
 
-	my ( $content, %permission, %count, $permalink );
+	my $self = $class->SUPER::new( @_ );
 
-	undef @permission{ @$required, @$optional }; # populate
-
-	while( my ( $elem, $arg ) = splice @$elements, 0, 2 ) {
-		if( exists $permission{ $elem } ) {
-			$content .= $make_tag{ $elem }->( $elem, $arg );
-			++$count{ $elem };
-		}
-		else {
-			croak "Unknown element $elem";
-		}
-
-		if( $elem eq 'link' and defined ( my $alt = permalink $arg ) ) {
-			$permalink = $alt unless $count{ 'alternate link' }++;
-		}
-
-		if( exists $callback->{ $elem } ) { $callback->{ $elem }->( $arg ) }
-
-		if( not @$elements ) { # end of input?
-			# we would normally fall off the bottom of the loop now;
-			# before that happens, it's time to defaultify stuff and
-			# put it in the input so we will keep going for a little longer
-			if( not $count{ id } and defined $permalink ) {
-				carp 'Falling back to alternate link as id';
-				push @$elements, id => $permalink;
-			}
-			if( not $count{ updated } ) {
-				push @$elements, updated => $arg{ default_upd };
-			}
-		}
+	if ( not defined $self->generator ) {
+		$self->add( generator => XML::Atom::SimpleFeed->default_generator, _default => 1 );
+	}
+	elsif ( $self->generator->name eq '' ) {
+		undef $self->generator;
 	}
 
-	my @error;
-
-	my @missing = grep { not exists $count{ $_ } } @$required;
-	my @toomany = grep { ( $count{ $_ } || 0 ) > 1 } 'alternate link', @$singular;
-
-	push @error, 'requires at least one ' . natural_enum( @missing ) . ' element' if @missing;
-	push @error, 'must have no more than one ' . natural_enum( @toomany ) . ' element' if @toomany;
-
-	croak $name, ' ', join ' and ', @error if @error;
-
-	return $content;
+	return $self;
 }
+
+sub add {
+	my $self = shift;
+	my $name = shift;
+
+	if ( $name eq 'entry' ) {
+		# FIXME check whether there is a feed-level `author`
+	}
+
+	return $self->SUPER::add( $name, @_ );
+}
+
+sub add_entry {
+	my $self = shift;
+	$self->add( entry => @_ );
+}
+
+sub as_xml {
+	my $self = shift;
+	my ( $atom_ns ) = @_;
+	$atom_ns->builder->document( $self->SUPER::as_xml( $atom_ns ) );
+}
+
+package XML::Atom::SimpleFeed::Tag::Entry;
+use parent -norequire => 'XML::Atom::SimpleFeed::Construct::Container';
+
+sub required { qw( title id updated ) }
+sub optional { qw( link summary content published author contributor category rights ) }
+sub singular { qw( content id published rights summary ) }
+
+# FIXME
+# 
+# o  atom:entry elements that contain no child atom:content element
+#    MUST contain at least one atom:link element with a rel attribute
+#    value of "alternate".
+# 
+# o  atom:entry elements MUST contain an atom:summary element in either
+#    of the following cases:
+#    *  the atom:entry contains an atom:content that has a "src"
+#       attribute (and is thus empty).
+#    *  the atom:entry contains content that is encoded in Base64;
+#       i.e., the "type" attribute of atom:content is a MIME media type
+#       [MIMEREG], but is not an XML media type [RFC3023], does not
+#       begin with "text/", and does not end with "/xml" or "+xml".
 
 ####################################################################
-# implementation of published interface and rest of RFC 4287
-#
-
-sub XML::Atom::SimpleFeed::new {
-	my $self = bless {}, shift;
-	my $arg = ( @_ and 'HASH' eq ref $_[0] ) ? shift : {};
-
-	$self->{ do_add_generator } = 1;
-
-	$self->feed( @_ ) if @_; # support old-style invocation
-
-	return $self;
-}
-
-sub XML::Atom::SimpleFeed::feed {
-	my $self = shift;
-
-	$self->{ meta } = container_content feed => (
-		elements    => \@_,
-		required    => [ qw( id title updated ) ],
-		optional    => [ qw( author category contributor generator icon logo link rights subtitle ) ],
-		singular    => [ qw( generator icon logo id rights subtitle title updated ) ],
-		callback    => {
-			author    => sub { $self->{ have_default_author } = 1 },
-			updated   => sub { $self->{ global_updated } = $_[ 0 ] },
-			generator => sub { $self->{ do_add_generator } = 0 },
-		},
-		default_upd => time,
-	);
-
-	return $self;
-}
-
-sub XML::Atom::SimpleFeed::add_entry  {
-	my $self = shift;
-
-	my @required = qw( id title updated );
-	my @optional = qw( category content contributor link published rights summary );
-
-	push @{ $self->{ have_default_author } ? \@optional : \@required }, 'author';
-
-	# FIXME
-	# 
-	# o  atom:entry elements that contain no child atom:content element
-	#    MUST contain at least one atom:link element with a rel attribute
-	#    value of "alternate".
-	# 
-	# o  atom:entry elements MUST contain an atom:summary element in either
-	#    of the following cases:
-	#    *  the atom:entry contains an atom:content that has a "src"
-	#       attribute (and is thus empty).
-	#    *  the atom:entry contains content that is encoded in Base64;
-	#       i.e., the "type" attribute of atom:content is a MIME media type
-	#       [MIMEREG], but is not an XML media type [RFC3023], does not
-	#       begin with "text/", and does not end with "/xml" or "+xml".
-
-	push @{ $self->{ entries } }, xml_tag entry => container_content entry => (
-		elements    => \@_,
-		required    => \@required,
-		optional    => \@optional,
-		singular    => [ qw( content id published rights summary ) ],
-		default_upd => $self->{ global_updated },
-	);
-
-	return $self;
-}
-
-sub XML::Atom::SimpleFeed::no_generator {
-	my $self = shift;
-	$self->{ do_add_generator } = 0;
-	return $self;
-}
-
-sub XML::Atom::SimpleFeed::as_string {
-	my $self = shift;
-	if( $self->{ do_add_generator } ) {
-		$self->{ meta } .= $make_tag{ generator }->( generator => DEFAULT_GENERATOR );
-		$self->{ do_add_generator } = 0;
-	}
-	PREAMBLE . xml_tag [ feed => xmlns => ATOM_NS ], $self->{ meta }, @{ $self->{ entries } };
-}
-
-sub XML::Atom::SimpleFeed::print {
-	my $self = shift;
-	my ( $handle ) = @_;
-	local $, = local $\ = '';
-	defined $handle ? print $handle $self->as_string : print $self->as_string;
-}
-
-sub XML::Atom::SimpleFeed::save_file { croak q{no longer supported, use 'print' instead and pass in a filehandle} }
 
 !!'Funky and proud of it.';
 
@@ -496,19 +603,9 @@ L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
 To specify multiple instances of an element that may be given multiple times,
 simply list multiple key-value pairs with the same key.
 
-=head2 C<no_generator>
-
-Suppresses the output of a default C<generator> element. It is not necessary to
-call this method if you supply a custom C<generator> element.
-
 =head2 C<as_string>
 
 Returns the XML representation of the feed as a string.
-
-=head2 C<print>
-
-Outputs the XML representation of the feed to a handle which should be passed
-as a parameter. Defaults to C<STDOUT> if you do not pass a handle.
 
 =head1 ATOM ELEMENTS
 
@@ -573,7 +670,8 @@ A L</Person Construct> denoting a contributor to the feed or entry.
 
 The software used to generate the feed. Can be supplied as a string, or a hash
 with C<uri>, C<version> and C<name> keys. Defaults to reporting
-XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
+XML::Atom::SimpleFeed as the generator. To suppress the default and include no
+C<generator> element in the feed, pass an empty string.
 
 =head2 C<icon>
 
