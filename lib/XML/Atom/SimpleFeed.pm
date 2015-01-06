@@ -13,7 +13,7 @@ use POSIX ();
 sub ATOM_NS           () { 'http://www.w3.org/2005/Atom' }
 sub XHTML_NS          () { 'http://www.w3.org/1999/xhtml' }
 sub PREAMBLE          () { qq(<?xml version="1.0" encoding="us-ascii"?>\n) }
-sub W3C_DATETIME      () { '%Y-%m-%dT%H:%M:%SZ' }
+sub W3C_DATETIME      () { '%Y-%m-%dT%H:%M:%S' }
 sub DEFAULT_GENERATOR () { {
 	uri     => 'http://search.cpan.org/dist/' . join( '-', split /::/, __PACKAGE__ ) . '/',
 	version => __PACKAGE__->VERSION || 'git',
@@ -100,6 +100,21 @@ sub permalink {
 sub simple_construct {
 	my ( $name, $content ) = @_;
 	xml_tag $name, xml_escape $content;
+}
+
+sub date_construct {
+	my ( $name, $dt ) = @_;
+
+	if ( $dt !~ /[^0-9]/ ) {
+		require POSIX;
+		$dt = POSIX::strftime( W3C_DATETIME . 'Z', gmtime $dt );
+	}
+	elsif ( ref $dt and eval { $dt->can( 'strftime' ) } ) {
+		$dt = $dt->strftime( W3C_DATETIME . '%z' );
+		$dt =~ s!(\d\d)\z!$1:!;
+	}
+
+	xml_tag $name, xml_escape $dt;
 }
 
 sub person_construct {
@@ -201,8 +216,8 @@ my %make_tag = (
 	icon        => \&simple_construct,
 	id          => \&simple_construct,
 	logo        => \&simple_construct,
-	published   => \&simple_construct,
-	updated     => \&simple_construct,
+	published   => \&date_construct,
+	updated     => \&date_construct,
 	author      => \&person_construct,
 	contributor => \&person_construct,
 	title       => \&text_construct,
@@ -305,7 +320,7 @@ sub XML::Atom::SimpleFeed::feed {
 			updated   => sub { $self->{ global_updated } = $_[ 0 ] },
 			generator => sub { $self->{ do_add_generator } = 0 },
 		},
-		default_upd => POSIX::strftime( W3C_DATETIME, gmtime ),
+		default_upd => time,
 	);
 
 	return $self;
@@ -668,6 +683,11 @@ using something like
 
  use POSIX 'strftime';
  my $now = strftime '%Y-%m-%dT%H:%M:%SZ', gmtime;
+
+However, you can also simply pass a Unix timestamp (a positive integer) or an
+object that responds to a C<strftime> method call (such as
+a L<Time::Piece|Time::Piece> or L<DateTime|DateTime> instance). Make sure that
+the timezone reported by such objects is correct!
 
 =head2 Person Construct
 
