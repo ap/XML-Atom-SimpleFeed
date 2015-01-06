@@ -1,5 +1,12 @@
 Release history for XML-Atom-SimpleFeed
 
+0.861 Tue 06 Jan 2015
+	- Auto-formatting for recognised data types in date constructs
+	- Fixed CDATA flattener (was missing /s flag)
+	- Non-fatal warnings; mea maxima culpa
+	- Test suite cleanup
+	- Now uses Dist::Zilla
+
 0.86 Tue 23 Jun 2009
 	- Person constructs are properly escaped and encoded
 
