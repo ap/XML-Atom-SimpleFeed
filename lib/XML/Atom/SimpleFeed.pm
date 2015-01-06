@@ -180,34 +180,50 @@ sub text_construct {
 	return xml_tag [ $name => $type ne 'text' ? ( type => $type ) : () ], $content;
 }
 
-sub empty_tag_maker {
-	my ( $required_attr, @optional_attr ) = @_;
+sub link_element {
+	my ( $name, $arg ) = @_;
 
-	sub {
-		my ( $name, $arg ) = @_;
+	# omit atom:link/@rel value when possible
+	delete $arg->{'rel'}
+		if 'HASH' eq ref $arg
+		and exists $arg->{'rel'}
+		and 'alternate' eq $arg->{'rel'};
 
-		if ( $name eq 'link' ) {
-			# HACK: no other simple tag needs similar features so it's easiest
-			# to hack them in here instead of providing an indirection
-
-			# croak "link '$arg->{ href }' is not a valid URI"
-			# 	if $arg->{ href } XXX TODO
-
-			# omit atom:link/@rel value when possible
-			delete $arg->{ rel }
-				if ref $arg eq 'HASH'
-				and exists $arg->{ rel }
-				and $arg->{ rel } eq 'alternate';
+	my @attr = 'HASH' eq ref $arg
+		? do {
+			croak "href required for link element" if not exists $arg->{'href'};
+			map { $_ => $arg->{ $_ } } grep exists $arg->{ $_ }, qw( href rel type title hreflang length );
 		}
+		: ( href => $arg );
 
-		if( ref $arg eq 'HASH' ) {
-			croak "$required_attr required for $name element" if not exists $arg->{ $required_attr };
-			my @attr = map { $_ => $arg->{ $_ } } grep exists $arg->{ $_ }, $required_attr, @optional_attr;
-			xml_tag [ $name => @attr ];
+	# croak "link '$attr[1]' is not a valid URI"
+	# 	if $attr[1] XXX TODO
+
+	xml_tag [ link => @attr ];
+}
+
+sub category_element {
+	my ( $name, $arg ) = @_;
+
+	my @attr = 'HASH' eq ref $arg
+		? do {
+			croak "term required for category element" if not exists $arg->{'term'};
+			map { $_ => $arg->{ $_ } } grep exists $arg->{ $_ }, qw( term scheme label );
 		}
-		else {
-			xml_tag [ $name => $required_attr => $arg ];
-		}
+		: ( term => $arg );
+
+	xml_tag [ category => @attr ];
+}
+
+sub generator_element {
+	my ( $name, $arg ) = @_;
+	if( ref $arg eq 'HASH' ) {
+		croak 'name required for generator element' if not exists $arg->{ name };
+		my $content = delete $arg->{ name };
+		xml_tag [ generator => map +( $_ => $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( uri version ) ], xml_escape( $content );
+	}
+	else {
+		xml_tag generator => xml_escape( $arg );
 	}
 }
 
@@ -225,19 +241,9 @@ my %make_tag = (
 	rights      => \&text_construct,
 	summary     => \&text_construct,
 	content     => \&text_construct,
-	link        => empty_tag_maker( qw( href rel type title hreflang length ) ),
-	category    => empty_tag_maker( qw( term scheme label ) ),
-	generator => sub {
-		my ( $name, $arg ) = @_;
-		if( ref $arg eq 'HASH' ) {
-			croak 'name required for generator element' if not exists $arg->{ name };
-			my $content = delete $arg->{ name };
-			xml_tag [ generator => map +( $_ => $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( uri version ) ], xml_escape( $content );
-		}
-		else {
-			xml_tag generator => xml_escape( $arg );
-		}
-	},
+	link        => \&link_element,
+	category    => \&category_element,
+	generator   => \&generator_element,
 );
 
 sub container_content {
