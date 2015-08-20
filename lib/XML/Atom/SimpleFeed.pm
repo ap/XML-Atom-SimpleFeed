@@ -111,7 +111,7 @@ sub date_construct {
 	}
 	elsif ( ref $dt and eval { $dt->can( 'strftime' ) } ) {
 		$dt = $dt->strftime( W3C_DATETIME . '%z' );
-		$dt =~ s!(\d\d)\z!$1:!;
+		substr ($dt, -2, 0) = ':';				# rfc 3339 compliant
 	}
 
 	xml_tag $name, xml_escape $dt;
