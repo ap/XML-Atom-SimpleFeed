@@ -104,16 +104,8 @@ sub simple_construct {
 
 sub date_construct {
 	my ( $name, $dt ) = @_;
-
-	if ( $dt !~ /[^0-9]/ ) {
-		require POSIX;
-		$dt = POSIX::strftime( W3C_DATETIME . 'Z', gmtime $dt );
-	}
-	elsif ( ref $dt and eval { $dt->can( 'strftime' ) } ) {
-		$dt = $dt->strftime( W3C_DATETIME . '%z' );
-		$dt =~ s!(\d\d)\z!$1:!;
-	}
-
+	eval { $dt = $dt->strftime( '%s' ) }; # convert to epoch to avoid dealing with everyone's TZ crap
+	$dt = POSIX::strftime( W3C_DATETIME . 'Z', gmtime $dt ) unless $dt =~ /[^0-9]/;
 	xml_tag $name, xml_escape $dt;
 }
 
