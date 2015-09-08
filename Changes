@@ -1,5 +1,9 @@
 Release history for XML-Atom-SimpleFeed
 
+0.862 Tue 08 Sep 2015
+	- Correct RFC 3339 formatting for datetime objects
+	  (Thanks, virii)
+
 0.861 Tue 06 Jan 2015
 	- Auto-formatting for recognised data types in date constructs
 	- Fixed CDATA flattener (was missing /s flag)
