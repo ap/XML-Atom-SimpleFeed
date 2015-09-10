@@ -1,5 +1,25 @@
 Release history for XML-Atom-SimpleFeed
 
+0.863 Thu 10 Sep 2015
+	[INCOMPATIBLE CHANGE]
+	- Datetime object support now via ->epoch method instead of ->strftime.
+
+	  Despite the fact that this is an incompatible change, it should actually
+	  be a nonevent for almost all users, because every datetime module I could
+	  find that supports ->strftime also supports ->epoch (and vice versa).
+
+	  However, the ->strftime methods of many modules are (subtly or badly)
+	  broken in the face of timezones even as their ->epoch methods work right
+	  (or else are broken subtly enough to escape notice).
+
+	  But if you have written your own datetime class, and it has a ->strftime
+	  method but not an ->epoch method, and you pass instance of that class to
+	  instance of this module, then the feeds you generate that way will now be
+	  broken.
+
+	  On balance, I believe that this change will unbreak vastly more code than
+	  it breaks. Therefore I decided to switch.
+
 0.862 Tue 08 Sep 2015
 	- Correct RFC 3339 formatting for datetime objects
 	  (Thanks, virii)
