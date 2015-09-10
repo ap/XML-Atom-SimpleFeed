@@ -382,7 +382,7 @@ sub XML::Atom::SimpleFeed::print {
 
 sub XML::Atom::SimpleFeed::save_file { croak q{no longer supported, use 'print' instead and pass in a filehandle} }
 
-! ! 'Funky and proud of it.';
+!!'Funky and proud of it.';
 
 __END__
 
