@@ -104,7 +104,7 @@ sub simple_construct {
 
 sub date_construct {
 	my ( $name, $dt ) = @_;
-	eval { $dt = $dt->strftime( '%s' ) }; # convert to epoch to avoid dealing with everyone's TZ crap
+	eval { $dt = $dt->epoch }; # convert to epoch to avoid dealing with everyone's TZ crap
 	$dt = POSIX::strftime( W3C_DATETIME . 'Z', gmtime $dt ) unless $dt =~ /[^0-9]/;
 	xml_tag $name, xml_escape $dt;
 }
@@ -683,9 +683,41 @@ using something like
  my $now = strftime '%Y-%m-%dT%H:%M:%SZ', gmtime;
 
 However, you can also simply pass a Unix timestamp (a positive integer) or an
-object that responds to a C<strftime> method call (such as
-a L<Time::Piece|Time::Piece> or L<DateTime|DateTime> instance). Make sure that
-the timezone reported by such objects is correct!
+object that responds to an C<epoch> method call. (Make sure that the timezone
+reported by such objects is correct!)
+
+The following datetime classes from CPAN are compatible with this interface:
+
+=over 4
+
+=item * L<Time::Piece|Time::Piece>
+
+=item * L<DateTime|DateTime>
+
+=item * L<Time::Moment|Time::Moment>
+
+=item * L<Panda::Date|Panda::Date>
+
+=item * L<Class::Date|Class::Date>
+
+=item * L<Time::Object|Time::Object> (an obsolete precursor to L<Time::Piece|Time::Piece>)
+
+=back
+
+The following are not:
+
+=over 4
+
+=item * L<DateTime::Tiny|DateTime::Tiny>
+
+This class lacks both an C<epoch> method or any way to emulate one E<ndash> as
+well as any timezone support in the first place.
+
+=item * L<Date::Handler|Date::Handler>
+
+This class has a suitable methodE<hellip> but sadly, calls it C<Epoch>.
+
+=back
 
 =head2 Person Construct
 
