@@ -418,9 +418,9 @@ __END__
 
 =head1 DESCRIPTION
 
-This module provides a minimal API for generating Atom syndication feeds
-quickly and easily. It supports all aspects of the Atom format, but has no
-provisions for generating feeds with extension elements.
+This is a minimal API for generating Atom syndication feeds quickly and easily.
+It supports all aspects of the Atom format itself but has no mechanism for the
+inclusion of extension elements.
 
 You can supply strings for most things, and the module will provide useful
 defaults. When you want more control, you can provide data structures, as
@@ -472,9 +472,12 @@ The following keys are supported:
 
 =head2 C<add_entry>
 
-This method adds an entry into the Atom feed. It takes a list of key-value
-pairs as parameters. The keys are used to create the corresponding
-L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
+Takes a list of key-value pairs,
+used to create corresponding L<"Atom elements"|/ATOM ELEMENTS>.
+To specify multiple instances of an element that may be given multiple times,
+pass multiple key-value pairs with the same key.
+
+The following keys are supported:
 
 =over
 
@@ -501,9 +504,6 @@ L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
 =item * L</C<updated>> (optional)
 
 =back
-
-To specify multiple instances of an element that may be given multiple times,
-simply list multiple key-value pairs with the same key.
 
 =head2 C<as_string>
 
