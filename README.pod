@@ -8,7 +8,7 @@ XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 VERSION
 
-version 0.863
+version 0.900
 
 =head1 SYNOPSIS
 

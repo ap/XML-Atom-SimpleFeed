@@ -1,5 +1,13 @@
 Release history for XML-Atom-SimpleFeed
 
+0.900 Tue 22 Sep 2015
+	- Support for arbitrary XML encodings
+
+	[INCOMPATIBLE CHANGE]
+	- Removal of ->no_generator method.
+
+	  To suppress the default generator tag, specify an undef generator.
+
 0.863 Thu 10 Sep 2015
 	[INCOMPATIBLE CHANGE]
 	- Datetime object support now via ->epoch method instead of ->strftime.
