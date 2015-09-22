@@ -10,9 +10,12 @@ use Carp;
 use Encode ();
 use POSIX ();
 
+my @XML_ENC = 'us-ascii'; # use array because local($myvar) error but local($myvar[0]) OK
+                          # and use a lexical because not a public interface
+
 sub ATOM_NS           () { 'http://www.w3.org/2005/Atom' }
 sub XHTML_NS          () { 'http://www.w3.org/1999/xhtml' }
-sub PREAMBLE          () { qq(<?xml version="1.0" encoding="us-ascii"?>\n) }
+sub PREAMBLE          () { qq(<?xml version="1.0" encoding="$XML_ENC[0]"?>\n) }
 sub W3C_DATETIME      () { '%Y-%m-%dT%H:%M:%S' }
 sub DEFAULT_GENERATOR () { {
 	uri     => 'https://metacpan.org/pod/' . __PACKAGE__,
@@ -24,6 +27,8 @@ sub DEFAULT_GENERATOR () { {
 # superminimal XML writer
 # 
 
+sub xml_encoding { local $XML_ENC[0] = shift; &{(shift)} }
+
 my %XML_ESC = (
 	"\xA" => '&#10;',
 	"\xD" => '&#13;',
@@ -34,7 +39,7 @@ my %XML_ESC = (
 	'>'   => '&gt;',
 );
 
-sub xml_cref { Encode::encode 'us-ascii', $_[ 0 ], Encode::HTMLCREF }
+sub xml_cref { Encode::encode $XML_ENC[0], $_[0], Encode::HTMLCREF }
 
 sub xml_escape {
 	$_[0] =~ s{ ( [<>&'"] ) }{ $XML_ESC{ $1 } }gex;
@@ -296,7 +301,14 @@ sub container_content {
 #
 
 sub XML::Atom::SimpleFeed::new {
-	my $self = bless {}, shift;
+	my $self = bless { xml_encoding => $XML_ENC[0] }, shift;
+
+	if ( my @i = grep { '-encoding' eq $_[$_] } grep { not $_ % 2 } 0 .. $#_ ) {
+		croak 'multiple encodings requested' if @i > 1;
+		( undef, my $encoding ) = splice @_, $i[0], 2;
+		$self->{ xml_encoding } = $encoding;
+	}
+
 	@_ ? $self->feed( @_ ) : $self;
 }
 
@@ -305,6 +317,7 @@ sub XML::Atom::SimpleFeed::feed {
 
 	my $have_generator;
 
+	local $XML_ENC[0] = $self->{ xml_encoding };
 	$self->{ meta } = container_content feed => (
 		elements    => \@_,
 		required    => [ qw( id title updated ) ],
@@ -347,6 +360,7 @@ sub XML::Atom::SimpleFeed::add_entry  {
 	#       [MIMEREG], but is not an XML media type [RFC3023], does not
 	#       begin with "text/", and does not end with "/xml" or "+xml".
 
+	local $XML_ENC[0] = $self->{ xml_encoding };
 	push @{ $self->{ entries } }, xml_tag entry => container_content entry => (
 		elements    => \@_,
 		required    => \@required,
@@ -360,6 +374,7 @@ sub XML::Atom::SimpleFeed::add_entry  {
 
 sub XML::Atom::SimpleFeed::as_string {
 	my $self = shift;
+	local $XML_ENC[0] = $self->{ xml_encoding };
 	PREAMBLE . xml_tag [ feed => xmlns => ATOM_NS ], $self->{ meta }, @{ $self->{ entries } };
 }
 
@@ -415,12 +430,19 @@ documented, to specify more particulars.
 
 =head2 C<new>
 
-XML::Atom::SimpleFeed instances are created by the C<new> constructor, which
-takes a list of key-value pairs as parameters. The keys are used to create the
-corresponding L<"Atom elements"|/ATOM ELEMENTS>. The following elements are
-available:
+Takes a list of key-value pairs.
+
+Most keys are used to create corresponding L<"Atom elements"|/ATOM ELEMENTS>.
+To specify multiple instances of an element that may be given multiple times,
+pass multiple key-value pairs with the same key.
+
+Keys that start with a dash specify how the XML document will be generated.
+
+The following keys are supported:
 
 =over
+
+=item * C<-encoding> (I<omissible>, default C<us-ascii>)
 
 =item * L</C<id>> (I<omissible>)
 
@@ -447,9 +469,6 @@ available:
 =item * L</C<updated>> (optional)
 
 =back
-
-To specify multiple instances of an element that may be given multiple times,
-simply list multiple key-value pairs with the same key.
 
 =head2 C<add_entry>
 
