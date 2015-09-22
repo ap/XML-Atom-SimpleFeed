@@ -295,14 +295,8 @@ sub container_content {
 #
 
 sub XML::Atom::SimpleFeed::new {
-	my $self = bless {}, shift;
-	my $arg = ( @_ and 'HASH' eq ref $_[0] ) ? shift : {};
-
-	$self->{ do_add_generator } = 1;
-
-	$self->feed( @_ ) if @_; # support old-style invocation
-
-	return $self;
+	my $self = bless { do_add_generator => 1 }, shift;
+	@_ ? $self->feed( @_ ) : $self;
 }
 
 sub XML::Atom::SimpleFeed::feed {
