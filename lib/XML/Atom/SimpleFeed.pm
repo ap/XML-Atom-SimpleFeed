@@ -214,9 +214,10 @@ sub generator_element {
 		my $content = delete $arg->{ name };
 		xml_tag [ generator => map +( $_ => $arg->{ $_ } ), grep exists $arg->{ $_ }, qw( uri version ) ], xml_escape( $content );
 	}
-	else {
+	elsif( defined $arg ) {
 		xml_tag generator => xml_escape( $arg );
 	}
+	else { '' }
 }
 
 # tag makers are called with the name of the tag they're supposed to handle as the first parameter
@@ -295,12 +296,14 @@ sub container_content {
 #
 
 sub XML::Atom::SimpleFeed::new {
-	my $self = bless { do_add_generator => 1 }, shift;
+	my $self = bless {}, shift;
 	@_ ? $self->feed( @_ ) : $self;
 }
 
 sub XML::Atom::SimpleFeed::feed {
 	my $self = shift;
+
+	my $have_generator;
 
 	$self->{ meta } = container_content feed => (
 		elements    => \@_,
@@ -310,10 +313,13 @@ sub XML::Atom::SimpleFeed::feed {
 		callback    => {
 			author    => sub { $self->{ have_default_author } = 1 },
 			updated   => sub { $self->{ global_updated } = $_[ 0 ] },
-			generator => sub { $self->{ do_add_generator } = 0 },
+			generator => sub { $have_generator = 1 },
 		},
 		default_upd => time,
 	);
+
+	$self->{ meta } .= $make_tag{ generator }->( generator => DEFAULT_GENERATOR )
+		unless $have_generator;
 
 	return $self;
 }
@@ -352,18 +358,8 @@ sub XML::Atom::SimpleFeed::add_entry  {
 	return $self;
 }
 
-sub XML::Atom::SimpleFeed::no_generator {
-	my $self = shift;
-	$self->{ do_add_generator } = 0;
-	return $self;
-}
-
 sub XML::Atom::SimpleFeed::as_string {
 	my $self = shift;
-	if( $self->{ do_add_generator } ) {
-		$self->{ meta } .= $make_tag{ generator }->( generator => DEFAULT_GENERATOR );
-		$self->{ do_add_generator } = 0;
-	}
 	PREAMBLE . xml_tag [ feed => xmlns => ATOM_NS ], $self->{ meta }, @{ $self->{ entries } };
 }
 
@@ -490,11 +486,6 @@ L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
 To specify multiple instances of an element that may be given multiple times,
 simply list multiple key-value pairs with the same key.
 
-=head2 C<no_generator>
-
-Suppresses the output of a default C<generator> element. It is not necessary to
-call this method if you supply a custom C<generator> element.
-
 =head2 C<as_string>
 
 Returns the XML representation of the feed as a string.
@@ -565,9 +556,10 @@ A L</Person Construct> denoting a contributor to the feed or entry.
 
 =head2 C<generator>
 
-The software used to generate the feed. Can be supplied as a string, or a hash
-with C<uri>, C<version> and C<name> keys. Defaults to reporting
-XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
+The software used to generate the feed. Can be supplied as a string
+or as a hash with C<uri>, C<version> and C<name> keys. Can also be undef to
+suppress the element entirely. If nothing is passed, defaults to reporting
+XML::Atom::SimpleFeed as the generator.
 
 =head2 C<icon>
 

@@ -120,11 +120,6 @@ L<"Atom Elements"|/ATOM ELEMENTS>. The following elements are available:
 To specify multiple instances of an element that may be given multiple times,
 simply list multiple key-value pairs with the same key.
 
-=head2 C<no_generator>
-
-Suppresses the output of a default C<generator> element. It is not necessary to
-call this method if you supply a custom C<generator> element.
-
 =head2 C<as_string>
 
 Returns the XML representation of the feed as a string.
@@ -195,9 +190,10 @@ A L</Person Construct> denoting a contributor to the feed or entry.
 
 =head2 C<generator>
 
-The software used to generate the feed. Can be supplied as a string, or a hash
-with C<uri>, C<version> and C<name> keys. Defaults to reporting
-XML::Atom::SimpleFeed as the generator, which can be calling C<no_generator>.
+The software used to generate the feed. Can be supplied as a string
+or as a hash with C<uri>, C<version> and C<name> keys. Can also be undef to
+suppress the element entirely. If nothing is passed, defaults to reporting
+XML::Atom::SimpleFeed as the generator.
 
 =head2 C<icon>
 
