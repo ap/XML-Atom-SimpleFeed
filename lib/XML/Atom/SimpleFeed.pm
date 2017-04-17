@@ -391,6 +391,8 @@ sub XML::Atom::SimpleFeed::save_file { croak q{no longer supported, use 'print' 
 
 __END__
 
+=pod
+
 =head1 SYNOPSIS
 
  use XML::Atom::SimpleFeed;
