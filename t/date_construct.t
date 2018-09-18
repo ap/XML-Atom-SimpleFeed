@@ -18,9 +18,10 @@ SKIP: {
 
 SKIP: {
 	skip 'missing DateTime', 2 unless eval { require DateTime };
-	my @tz = ( time_zone => DateTime::TimeZone->new( name => 'local' ) );
+	my @tz = map +( time_zone => $_ ), grep defined, eval { DateTime::TimeZone->new( name => 'local' ) };
 	is date_construct( d => DateTime->from_epoch( epoch => 0 ) ),      $bigbang, 'correct RFC 3339 for DateTime objects';
-	is date_construct( d => DateTime->from_epoch( epoch => 0, @tz ) ), $bigbang, '... regardless of local timezone';
+	is date_construct( d => DateTime->from_epoch( epoch => 0, @tz ) ), $bigbang, '... regardless of local timezone' if @tz;
+	skip 'failed DateTime::TimeZone detection', 1 unless @tz;
 };
 
 SKIP: {
