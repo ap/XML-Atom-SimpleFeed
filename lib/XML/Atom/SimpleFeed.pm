@@ -4,7 +4,7 @@ use warnings;
 
 package XML::Atom::SimpleFeed;
 
-# ABSTRACT: No-fuss generation of Atom syndication feeds
+our $VERSION = '0.902';
 
 use Carp;
 use Encode ();
@@ -392,6 +392,12 @@ sub XML::Atom::SimpleFeed::save_file { croak q{no longer supported, use 'print' 
 __END__
 
 =pod
+
+=encoding UTF-8
+
+=head1 NAME
+
+XML::Atom::SimpleFeed - No-fuss generation of Atom syndication feeds
 
 =head1 SYNOPSIS
 
@@ -797,3 +803,5 @@ Nothing is done to ensure that text constructs with type C<xhtml> and entry
 contents using either that or an XML media type are well-formed. So far, this
 is by design. You should strongly consider using an XML writer if you want to
 include content with such types in your feed.
+
+=cut
