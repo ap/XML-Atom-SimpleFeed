@@ -4,7 +4,7 @@ use warnings;
 
 package XML::Atom::SimpleFeed;
 
-our $VERSION = '0.902';
+our $VERSION = '0.903';
 
 use Carp;
 use Encode ();
