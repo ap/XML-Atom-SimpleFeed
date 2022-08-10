@@ -10,15 +10,12 @@ my %META = (
 	prereqs     => {
 		runtime => { requires => {qw(
 			perl                5.008001
-			strict                     0
-			warnings                   0
 			Carp                       0
 			Encode                     0
 			POSIX                      0
 		)} },
 		test => { requires => {qw(
 			Test::More                 0
-			utf8                       0
 		)} },
 	},
 	dynamic_config => 0,
